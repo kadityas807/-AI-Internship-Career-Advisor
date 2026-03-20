@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "The student's main profile and career goals.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User ID" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "targetRoles": { "type": "array", "items": { "type": "string" } },
+        "preferredIndustries": { "type": "array", "items": { "type": "string" } },
+        "academicBackground": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Skill": {
+      "title": "Skill",
+      "description": "An entry in the student's Skills Ledger.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Technical", "Soft", "Domain"] },
+        "proficiency": { "type": "number", "description": "1 to 5 scale" },
+        "evidence": { "type": "string", "description": "How the skill was acquired or demonstrated." },
+        "lastDemonstrated": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "category", "proficiency", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "An entry in the student's Project Registry.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "techStack": { "type": "array", "items": { "type": "string" } },
+        "role": { "type": "string" },
+        "outcome": { "type": "string" },
+        "link": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "description", "createdAt"]
+    },
+    "Application": {
+      "title": "Job/Internship Application",
+      "description": "An entry in the student's Application Tracker.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "Applied", "Interviewing", "Offer", "Rejected", "Ghosted"] },
+        "applicationDate": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "company", "role", "status", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message in the AI Mentor chat history.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model", "system"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores user profiles."
+    },
+    "/users/{userId}/skills/{skillId}": {
+      "schema": { "$ref": "#/entities/Skill" },
+      "description": "Stores skills for a user."
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Stores projects for a user."
+    },
+    "/users/{userId}/applications/{applicationId}": {
+      "schema": { "$ref": "#/entities/Application" },
+      "description": "Stores applications for a user."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Stores chat messages for a user."
+    }
+  }
+}

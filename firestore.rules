@@ -1,0 +1,215 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - displayName: string (optional)
+    //   - email: string (required, immutable)
+    //   - targetRoles: list (optional)
+    //   - preferredIndustries: list (optional)
+    //   - academicBackground: string (optional)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: users/{userId}/skills
+    // Document ID: {skillId}
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - name: string (required)
+    //   - category: string (required, enum: Technical, Soft, Domain)
+    //   - proficiency: number (required, 1-5)
+    //   - evidence: string (optional)
+    //   - lastDemonstrated: timestamp (optional)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: users/{userId}/projects
+    // Document ID: {projectId}
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - name: string (required)
+    //   - description: string (required)
+    //   - techStack: list (optional)
+    //   - role: string (optional)
+    //   - outcome: string (optional)
+    //   - link: string (optional)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: users/{userId}/applications
+    // Document ID: {applicationId}
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - company: string (required)
+    //   - role: string (required)
+    //   - status: string (required, enum: Draft, Applied, Interviewing, Offer, Rejected, Ghosted)
+    //   - applicationDate: timestamp (optional)
+    //   - notes: string (optional)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: users/{userId}/messages
+    // Document ID: {messageId}
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - role: string (required, enum: user, model, system)
+    //   - content: string (required)
+    //   - createdAt: timestamp (required, immutable)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             request.resource.data[field] == null ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidList(listField, maxSize) {
+      return !(listField in request.resource.data) || 
+             request.resource.data[listField] == null ||
+             (request.resource.data[listField] is list && request.resource.data[listField].size() <= maxSize);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Domain Validators
+    function isValidUserProfile() {
+      return hasRequiredFields(['uid', 'email', 'createdAt']) &&
+             request.resource.data.uid == request.auth.uid &&
+             request.resource.data.email is string &&
+             request.resource.data.createdAt is timestamp &&
+             isValidOptionalString('displayName', 0, 100) &&
+             isValidOptionalString('academicBackground', 0, 1000) &&
+             isValidList('targetRoles', 20) &&
+             isValidList('preferredIndustries', 20);
+    }
+
+    function isValidSkill() {
+      return hasRequiredFields(['uid', 'name', 'category', 'proficiency', 'createdAt']) &&
+             request.resource.data.uid == request.auth.uid &&
+             validStringLength('name', 1, 100) &&
+             request.resource.data.category in ['Technical', 'Soft', 'Domain'] &&
+             request.resource.data.proficiency is number &&
+             request.resource.data.proficiency >= 1 && request.resource.data.proficiency <= 5 &&
+             request.resource.data.createdAt is timestamp &&
+             isValidOptionalString('evidence', 0, 2000);
+    }
+
+    function isValidProject() {
+      return hasRequiredFields(['uid', 'name', 'description', 'createdAt']) &&
+             request.resource.data.uid == request.auth.uid &&
+             validStringLength('name', 1, 200) &&
+             validStringLength('description', 1, 5000) &&
+             request.resource.data.createdAt is timestamp &&
+             isValidOptionalString('role', 0, 200) &&
+             isValidOptionalString('outcome', 0, 2000) &&
+             isValidOptionalString('link', 0, 500) &&
+             isValidList('techStack', 50);
+    }
+
+    function isValidApplication() {
+      return hasRequiredFields(['uid', 'company', 'role', 'status', 'createdAt']) &&
+             request.resource.data.uid == request.auth.uid &&
+             validStringLength('company', 1, 200) &&
+             validStringLength('role', 1, 200) &&
+             request.resource.data.status in ['Draft', 'Applied', 'Interviewing', 'Offer', 'Rejected', 'Ghosted'] &&
+             request.resource.data.createdAt is timestamp &&
+             isValidOptionalString('notes', 0, 5000);
+    }
+
+    function isValidMessage() {
+      return hasRequiredFields(['uid', 'role', 'content', 'createdAt']) &&
+             request.resource.data.uid == request.auth.uid &&
+             request.resource.data.role in ['user', 'model', 'system'] &&
+             validStringLength('content', 1, 50000) &&
+             request.resource.data.createdAt is timestamp;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile() && uidUnchanged();
+      allow update: if isOwner(userId) && isValidUserProfile() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt', 'email']);
+      allow delete: if isOwner(userId);
+
+      match /skills/{skillId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSkill() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidSkill() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /projects/{projectId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProject() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidProject() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /applications/{applicationId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidApplication() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidApplication() && uidNotModified() && areImmutableFieldsUnchanged(['createdAt']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /messages/{messageId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMessage() && uidUnchanged();
+        allow update: if false; // Messages should be immutable
+        allow delete: if isOwner(userId);
+      }
+
+      match /fingerprint/{documentId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /roadmap/{documentId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /benchmark/{documentId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
