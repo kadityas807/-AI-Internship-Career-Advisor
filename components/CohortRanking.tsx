@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GoogleGenAI, Type } from '@google/genai';
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { useAuth } from './AuthProvider';
@@ -27,39 +26,43 @@ export default function CohortRanking() {
           applications: appsSnap.docs.map(d => d.data())
         };
 
-        const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: `Evaluate this student's rank among 100 similar students based on this data: ${JSON.stringify(data)}. Provide rank, tier, justification, gaps, missions, progression simulation, and motivational feedback.`,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
+        const prompt = `Evaluate this student's rank among 100 similar students based on this data: ${JSON.stringify(data)}. Provide rank, tier, justification, gaps, missions, progression simulation, and motivational feedback.`;
+
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt,
+            schema: {
+              type: 'OBJECT',
               properties: {
-                rank: { type: Type.STRING },
-                tier: { type: Type.STRING },
-                justification: { type: Type.STRING },
-                gaps: { type: Type.STRING },
+                rank: { type: 'STRING' },
+                tier: { type: 'STRING' },
+                justification: { type: 'STRING' },
+                gaps: { type: 'STRING' },
                 missions: { 
-                  type: Type.ARRAY, 
+                  type: 'ARRAY', 
                   items: { 
-                    type: Type.OBJECT, 
+                    type: 'OBJECT', 
                     properties: { 
-                      task: { type: Type.STRING }, 
-                      difficulty: { type: Type.STRING }, 
-                      time: { type: Type.STRING }, 
-                      reward: { type: Type.STRING } 
+                      task: { type: 'STRING' }, 
+                      difficulty: { type: 'STRING' }, 
+                      time: { type: 'STRING' }, 
+                      reward: { type: 'STRING' } 
                     } 
                   } 
                 },
-                simulation: { type: Type.STRING },
-                motivation: { type: Type.STRING }
+                simulation: { type: 'STRING' },
+                motivation: { type: 'STRING' }
               },
               required: ['rank', 'tier', 'justification', 'gaps', 'missions', 'simulation', 'motivation']
             }
-          }
+          })
         });
-        setRanking(JSON.parse(response.text || '{}'));
+
+        if (!res.ok) throw new Error('API Error');
+        const { text } = await res.json();
+        setRanking(JSON.parse(text || '{}'));
       } catch (error) {
         console.error('Error fetching ranking:', error);
       } finally {

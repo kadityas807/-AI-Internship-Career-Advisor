@@ -210,6 +210,10 @@ service cloud.firestore {
       match /benchmark/{documentId} {
         allow read, write: if isOwner(userId);
       }
+
+      match /profiles/{documentId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }

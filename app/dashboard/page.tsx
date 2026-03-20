@@ -9,10 +9,10 @@ import { BookOpen, Briefcase, FileText, ArrowRight, Sparkles, Activity, Loader2,
 import Link from 'next/link';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import { motion } from 'motion/react';
-import { GoogleGenAI, Type } from '@google/genai';
 import PopulateDemoData from '@/components/PopulateDemoData';
 import SmartImport from '@/components/SmartImport';
 import CohortRanking from '@/components/CohortRanking';
+import Loader3D from '@/components/Loader3D';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -69,7 +69,6 @@ export default function Dashboard() {
       const projectsSnap = await getDocs(collection(db, 'users', user.uid, 'projects'));
       const projects = projectsSnap.docs.map(d => ({ title: d.data().title, description: d.data().description }));
 
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
       const prompt = `
         You are an expert technical recruiter and career coach.
         Analyze the student's current profile:
@@ -80,25 +79,27 @@ export default function Dashboard() {
         Provide a peer benchmark report.
       `;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          schema: {
+            type: 'OBJECT',
             properties: {
-              standing: { type: Type.STRING, description: 'e.g. Above Average, Average, Below Average' },
-              summary: { type: Type.STRING },
-              specificGaps: { type: Type.ARRAY, items: { type: Type.STRING } },
-              topStudentDifferences: { type: Type.ARRAY, items: { type: Type.STRING } }
+              standing: { type: 'STRING', description: 'e.g. Above Average, Average, Below Average' },
+              summary: { type: 'STRING' },
+              specificGaps: { type: 'ARRAY', items: { type: 'STRING' } },
+              topStudentDifferences: { type: 'ARRAY', items: { type: 'STRING' } }
             },
             required: ['standing', 'summary', 'specificGaps', 'topStudentDifferences']
           }
-        }
+        })
       });
 
-      const data = JSON.parse(response.text || '{}');
+      if (!res.ok) throw new Error('API Error');
+      const { text } = await res.json();
+      const data = JSON.parse(text || '{}');
       setBenchmark(data);
 
       await setDoc(doc(db, 'users', user.uid, 'benchmark', 'current'), {
@@ -213,10 +214,8 @@ export default function Dashboard() {
       </motion.div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse mb-12">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200 h-40"></div>
-          ))}
+        <div className="flex items-center justify-center py-20">
+          <Loader3D text="INITIALIZING SYSTEM..." />
         </div>
       ) : (
         <motion.div 

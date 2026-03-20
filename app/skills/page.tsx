@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import { motion, AnimatePresence } from 'motion/react';
 import SmartImport from '@/components/SmartImport';
+import SkillsVisualizer from '@/components/SkillsVisualizer';
 
 export default function SkillsPage() {
   const { user } = useAuth();
@@ -105,6 +106,8 @@ export default function SkillsPage() {
           </motion.button>
         </div>
       </motion.div>
+
+      <SkillsVisualizer skills={skills} />
 
       <motion.div 
         layout

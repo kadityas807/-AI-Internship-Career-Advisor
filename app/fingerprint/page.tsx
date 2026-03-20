@@ -9,6 +9,7 @@ import { Fingerprint, Loader2, Sparkles, Brain, Users, BookOpen, Target } from '
 import { GoogleGenAI, Type } from '@google/genai';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import { motion, AnimatePresence } from 'motion/react';
+import Loader3D from '@/components/Loader3D';
 
 interface FingerprintData {
   thinkingStyle: string;
@@ -70,38 +71,38 @@ export default function FingerprintPage() {
         Projects: ${JSON.stringify(projects)}
       `;
 
-      // 2. Call Gemini API
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
-        contents: `Analyze the following user profile (skills and projects) and generate a "Career Fingerprint". 
+      // 2. Call Generation API
+      const prompt = `Analyze the following user profile (skills and projects) and generate a "Career Fingerprint". 
         Extract their unique thinking style, collaboration signature, and narrative voice. 
         Build a narrative arc with story frames for different audiences. 
         Mine their projects for concrete evidence of soft skills.
         
         Profile Data:
-        ${profileData}`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
+        ${profileData}`;
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          schema: {
+            type: 'OBJECT',
             properties: {
-              thinkingStyle: { type: Type.STRING, description: "e.g., Systems thinker, rapid prototyper, depth-first learner." },
-              collaborationSignature: { type: Type.STRING, description: "e.g., Independent deep work, collaborative breadth." },
-              narrativeVoice: { type: Type.STRING, description: "How they naturally frame problems and solutions." },
-              uniqueValueProposition: { type: Type.STRING, description: "What makes them genuinely distinct from thousands of others." },
+              thinkingStyle: { type: 'STRING', description: "e.g., Systems thinker, rapid prototyper, depth-first learner." },
+              collaborationSignature: { type: 'STRING', description: "e.g., Independent deep work, collaborative breadth." },
+              narrativeVoice: { type: 'STRING', description: "How they naturally frame problems and solutions." },
+              uniqueValueProposition: { type: 'STRING', description: "What makes them genuinely distinct from thousands of others." },
               narrativeArc: {
-                type: Type.OBJECT,
+                type: 'OBJECT',
                 properties: {
-                  theme: { type: Type.STRING, description: "The recurring theme or through-line of their experiences." },
+                  theme: { type: 'STRING', description: "The recurring theme or through-line of their experiences." },
                   storyFrames: {
-                    type: Type.ARRAY,
+                    type: 'ARRAY',
                     items: {
-                      type: Type.OBJECT,
+                      type: 'OBJECT',
                       properties: {
-                        audience: { type: Type.STRING, description: "e.g., Fintech Startup, Large Tech Company" },
-                        frame: { type: Type.STRING, description: "How to tell the story to this audience." }
+                        audience: { type: 'STRING', description: "e.g., Fintech Startup, Large Tech Company" },
+                        frame: { type: 'STRING', description: "How to tell the story to this audience." }
                       },
                       required: ["audience", "frame"]
                     }
@@ -110,12 +111,12 @@ export default function FingerprintPage() {
                 required: ["theme", "storyFrames"]
               },
               softSkills: {
-                type: Type.ARRAY,
+                type: 'ARRAY',
                 items: {
-                  type: Type.OBJECT,
+                  type: 'OBJECT',
                   properties: {
-                    skill: { type: Type.STRING },
-                    evidence: { type: Type.STRING, description: "Concrete evidence extracted from their projects." }
+                    skill: { type: 'STRING' },
+                    evidence: { type: 'STRING', description: "Concrete evidence extracted from their projects." }
                   },
                   required: ["skill", "evidence"]
                 }
@@ -123,10 +124,12 @@ export default function FingerprintPage() {
             },
             required: ["thinkingStyle", "collaborationSignature", "narrativeVoice", "uniqueValueProposition", "narrativeArc", "softSkills"]
           }
-        }
+        })
       });
 
-      const result = JSON.parse(response.text || '{}') as FingerprintData;
+      if (!res.ok) throw new Error('API Error');
+      const { text } = await res.json();
+      const result = JSON.parse(text || '{}') as FingerprintData;
 
       // 3. Save to Firestore
       await setDoc(doc(db, 'users', user.uid, 'fingerprint', 'current'), {
@@ -147,7 +150,7 @@ export default function FingerprintPage() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+           <Loader3D text="LOADING SIGNATURE..." />
         </div>
       </AppLayout>
     );
@@ -218,20 +221,10 @@ export default function FingerprintPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="py-32 flex flex-col items-center justify-center text-center"
+            className="py-12 flex flex-col items-center justify-center text-center"
           >
-            <div className="relative w-24 h-24 mb-8">
-              <motion.div 
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} 
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="absolute inset-0 bg-indigo-200 rounded-full blur-xl"
-              />
-              <div className="absolute inset-0 bg-white rounded-full flex items-center justify-center shadow-xl border border-indigo-100 z-10">
-                <Fingerprint className="w-10 h-10 text-indigo-600 animate-pulse" />
-              </div>
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2 font-display">Extracting Your Signature...</h3>
-            <p className="text-slate-500 animate-pulse">Mining projects, analyzing skills, building narrative arcs.</p>
+            <Loader3D text="EXTRACTING SIGNATURE..." />
+            <p className="text-slate-500 animate-pulse mt-4">Mining projects, analyzing skills, building narrative arcs.</p>
           </motion.div>
         ) : fingerprint ? (
           <motion.div 

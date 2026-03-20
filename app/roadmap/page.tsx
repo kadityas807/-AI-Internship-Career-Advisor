@@ -5,10 +5,10 @@ import { useAuth } from '@/components/AuthProvider';
 import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { GoogleGenAI, Type } from '@google/genai';
 import { Map, Loader2, ArrowRight, CheckCircle2, Target, Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
+import Loader3D from '@/components/Loader3D';
 
 interface RoadmapData {
   totalWeeks: number;
@@ -28,6 +28,7 @@ interface RoadmapData {
 export default function RoadmapPage() {
   const { user } = useAuth();
   const [targetRole, setTargetRole] = useState('');
+  const [targetDuration, setTargetDuration] = useState('12');
   const [isGenerating, setIsGenerating] = useState(false);
   const [roadmap, setRoadmap] = useState<RoadmapData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +43,7 @@ export default function RoadmapPage() {
         if (docSnap.exists()) {
           setRoadmap(docSnap.data() as RoadmapData);
           setTargetRole(docSnap.data().targetRole || '');
+          setTargetDuration(docSnap.data().targetDuration || '12');
         }
       } catch (error) {
         handleFirestoreError(error, OperationType.GET, `users/${user.uid}/roadmap/current`);
@@ -69,44 +71,44 @@ export default function RoadmapPage() {
       const projectsSnap = await getDocs(collection(db, 'users', user.uid, 'projects'));
       const projects = projectsSnap.docs.map(d => ({ title: d.data().title, description: d.data().description }));
 
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
       const prompt = `
         You are an expert technical career coach.
-        The user wants to become a: ${targetRole}
+        The user wants to become a: ${targetRole} within exactly ${targetDuration} weeks.
         Their current skills: ${skills.join(', ')}
         Their current projects: ${JSON.stringify(projects)}
 
-        Generate a personalized "Time-to-Ready Forecast" and roadmap.
-        Be realistic about the time required.
+        Generate a personalized ${targetDuration}-week "Time-to-Ready Forecast" and roadmap.
+        You MUST provide exactly ${targetDuration} weeks in the weeklyPlan array, mapping out realistic progression. 
+        Adjust the pacing to fit the ${targetDuration}-week timeframe.
       `;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          schema: {
+            type: 'OBJECT',
             properties: {
-              totalWeeks: { type: Type.INTEGER, description: 'Estimated weeks to be interview-ready' },
-              readinessScore: { type: Type.INTEGER, description: 'Current readiness score out of 100' },
+              totalWeeks: { type: 'INTEGER', description: 'Estimated weeks to be interview-ready' },
+              readinessScore: { type: 'INTEGER', description: 'Current readiness score out of 100' },
               breakdown: {
-                type: Type.OBJECT,
+                type: 'OBJECT',
                 properties: {
-                  skills: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  projects: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  interviewPrep: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  skills: { type: 'ARRAY', items: { type: 'STRING' } },
+                  projects: { type: 'ARRAY', items: { type: 'STRING' } },
+                  interviewPrep: { type: 'ARRAY', items: { type: 'STRING' } },
                 },
                 required: ['skills', 'projects', 'interviewPrep']
               },
               weeklyPlan: {
-                type: Type.ARRAY,
+                type: 'ARRAY',
                 items: {
-                  type: Type.OBJECT,
+                  type: 'OBJECT',
                   properties: {
-                    week: { type: Type.INTEGER },
-                    focus: { type: Type.STRING },
-                    tasks: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    week: { type: 'INTEGER' },
+                    focus: { type: 'STRING' },
+                    tasks: { type: 'ARRAY', items: { type: 'STRING' } }
                   },
                   required: ['week', 'focus', 'tasks']
                 }
@@ -114,14 +116,17 @@ export default function RoadmapPage() {
             },
             required: ['totalWeeks', 'readinessScore', 'breakdown', 'weeklyPlan']
           }
-        }
+        })
       });
 
-      const data = JSON.parse(response.text || '{}');
+      if (!res.ok) throw new Error('API Error');
+      const { text } = await res.json();
+      const data = JSON.parse(text || '{}');
       
       await setDoc(doc(db, 'users', user.uid, 'roadmap', 'current'), {
         ...data,
         targetRole,
+        targetDuration,
         updatedAt: new Date().toISOString()
       });
 
@@ -137,8 +142,8 @@ export default function RoadmapPage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader3D text="LOADING ROADMAP..." />
         </div>
       </AppLayout>
     );
@@ -163,8 +168,8 @@ export default function RoadmapPage() {
         )}
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
-          <label className="block text-sm font-medium text-slate-700 mb-2">What is your target role?</label>
-          <div className="flex gap-3">
+          <label className="block text-sm font-medium text-slate-700 mb-2">What is your target role and timeline?</label>
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               value={targetRole}
@@ -172,6 +177,16 @@ export default function RoadmapPage() {
               placeholder="e.g. Junior React Developer, Data Scientist"
               className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
+            <select
+              value={targetDuration}
+              onChange={(e) => setTargetDuration(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+            >
+              <option value="4">4 Weeks (Crash Course)</option>
+              <option value="8">8 Weeks (Accelerated)</option>
+              <option value="12">12 Weeks (Standard)</option>
+              <option value="24">24 Weeks (Comprehensive)</option>
+            </select>
             <button
               onClick={generateRoadmap}
               disabled={isGenerating || !targetRole.trim()}
@@ -249,32 +264,45 @@ export default function RoadmapPage() {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-500" /> Weekly Plan
+            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
+              <h2 className="text-xl font-bold text-slate-900 mb-12 flex items-center justify-center gap-2">
+                <Calendar className="w-6 h-6 text-indigo-500" /> Timeline Tree
               </h2>
-              <div className="space-y-6">
-                {roadmap.weeklyPlan.map((week) => (
-                  <div key={week.week} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0">
-                        {week.week}
+
+              <div className="relative max-w-3xl mx-auto">
+                {/* Central vertical line */}
+                <div className="absolute left-6 md:left-1/2 top-4 bottom-4 w-1 bg-indigo-100 md:-translate-x-1/2 rounded-full z-0" />
+                
+                <div className="space-y-12">
+                  {roadmap.weeklyPlan.map((week, index) => {
+                    const isEven = index % 2 === 0;
+                    return (
+                      <div key={week.week} className={`relative z-10 flex flex-col md:flex-row items-center ${isEven ? 'md:flex-row-reverse' : ''} gap-6 md:gap-0`}>
+                        
+                        {/* Timeline Node Content Block */}
+                        <div className={`w-full md:w-1/2 flex ${isEven ? 'md:justify-start pl-20 md:pl-10 md:pr-0' : 'md:justify-end md:pr-10 pl-20 md:pl-0'}`}>
+                          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm w-full transition-all hover:shadow-md hover:border-indigo-200 text-left">
+                            <h3 className="text-lg font-bold text-slate-900 mb-3">{week.focus}</h3>
+                            <ul className="space-y-2">
+                              {week.tasks.map((task, i) => (
+                                <li key={i} className="text-slate-600 flex items-start gap-2 text-sm justify-start">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                  <span>{task}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Center Dot and Week Label */}
+                        <div className="absolute left-6 md:left-1/2 top-0 md:top-1/2 -translate-x-1/2 md:-translate-y-1/2 w-12 h-12 rounded-full bg-indigo-600 border-4 border-white shadow-md flex items-center justify-center font-bold text-white z-20">
+                          W{week.week}
+                        </div>
+
                       </div>
-                      <div className="w-px h-full bg-slate-200 my-2" />
-                    </div>
-                    <div className="pb-6">
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">{week.focus}</h3>
-                      <ul className="space-y-2">
-                        {week.tasks.map((task, i) => (
-                          <li key={i} className="text-slate-600 flex items-start gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                            <span>{task}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </motion.div>

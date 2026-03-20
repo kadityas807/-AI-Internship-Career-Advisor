@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { GoogleGenAI, Type } from '@google/genai';
 import { useAuth } from './AuthProvider';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -21,25 +20,24 @@ export default function ResumeUpload() {
       // For now, we assume text-based resume upload for simplicity in this environment
       const text = await file.text();
 
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Parse this resume into structured data: ${text}`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
+      const prompt = `Parse this resume into structured data: ${text}`;
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          schema: {
+            type: 'OBJECT',
             properties: {
-              skills: { type: Type.ARRAY, items: { type: Type.STRING } },
+              skills: { type: 'ARRAY', items: { type: 'STRING' } },
               projects: {
-                type: Type.ARRAY,
+                type: 'ARRAY',
                 items: {
-                  type: Type.OBJECT,
+                  type: 'OBJECT',
                   properties: {
-                    name: { type: Type.STRING },
-                    description: { type: Type.STRING },
-                    techStack: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    name: { type: 'STRING' },
+                    description: { type: 'STRING' },
+                    techStack: { type: 'ARRAY', items: { type: 'STRING' } }
                   },
                   required: ['name', 'description']
                 }
@@ -47,10 +45,12 @@ export default function ResumeUpload() {
             },
             required: ['skills', 'projects']
           }
-        }
+        })
       });
 
-      const data = JSON.parse(response.text || '{}');
+      if (!res.ok) throw new Error('API Error');
+      const { text: resultText } = await res.json();
+      const data = JSON.parse(resultText || '{}');
 
       // Save to Firestore
       for (const skill of data.skills) {
