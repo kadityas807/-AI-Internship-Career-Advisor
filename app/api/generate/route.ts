@@ -1,53 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLM, type BaseLLMParams } from '@langchain/core/language_models/llms';
+import { HindsightGeneric } from '@/lib/hindsight';
 
-const HINDSIGHT_API_KEY = process.env.HINDSIGHT_API_KEY!;
 const BANK_ID = process.env.HINDSIGHT_BANK_ID || 'ai-mentor';
-const HINDSIGHT_BASE = 'https://api.hindsight.vectorize.io';
-
-export class HindsightGeneric extends LLM {
-  bankId: string;
-
-  constructor(fields: { bankId: string } & BaseLLMParams) {
-    super(fields);
-    this.bankId = fields.bankId;
-  }
-
-  _llmType() { return 'hindsight_generic'; }
-
-  async _call(prompt: string): Promise<string> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 40000);
-
-    try {
-      const res = await fetch(`${HINDSIGHT_BASE}/v1/default/banks/${this.bankId}/reflect`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${HINDSIGHT_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: prompt,
-          context: '',
-          budget: 'high',
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        throw new Error(`Hindsight API error ${res.status}`);
-      }
-
-      const data = await res.json();
-      return data?.text || '{}';
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      throw err;
-    }
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
