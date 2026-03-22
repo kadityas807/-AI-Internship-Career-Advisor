@@ -148,7 +148,13 @@ export default function Dashboard() {
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">✕</button>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none rounded-md p-1"
+              aria-label="Dismiss error"
+            >
+              ✕
+            </button>
           </div>
         )}
       </motion.div>

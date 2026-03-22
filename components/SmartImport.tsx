@@ -149,7 +149,8 @@ export default function SmartImport() {
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                  aria-label="Close smart import"
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
                 >
                   <X className="w-5 h-5 text-slate-400" />
                 </button>
@@ -158,11 +159,15 @@ export default function SmartImport() {
               <div className="p-8">
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <label
+                      htmlFor="import-input"
+                      className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"
+                    >
                       <FileText className="w-4 h-4 text-indigo-500" />
                       Paste Resume Text or GitHub URL
                     </label>
                     <textarea
+                      id="import-input"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Paste your resume content here, or a link to your GitHub profile/repository..."
@@ -195,7 +200,7 @@ export default function SmartImport() {
                   <div className="flex items-center justify-end gap-3 pt-4">
                     <button
                       onClick={() => setIsOpen(false)}
-                      className="px-6 py-2.5 text-slate-600 font-medium hover:bg-slate-50 rounded-xl transition-colors"
+                      className="px-6 py-2.5 text-slate-600 font-medium hover:bg-slate-50 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
                       disabled={loading}
                     >
                       Cancel
@@ -203,7 +208,7 @@ export default function SmartImport() {
                     <button
                       onClick={handleImport}
                       disabled={loading || !input.trim()}
-                      className={`px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-indigo-200/50 ${
+                      className={`px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-indigo-200/50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                         status === 'success' ? 'bg-emerald-600 text-white' : 
                         'bg-indigo-600 text-white hover:bg-indigo-700'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
