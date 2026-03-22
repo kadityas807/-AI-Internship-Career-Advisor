@@ -512,17 +512,17 @@ export default function ApplicationsPage() {
             <h2 className="text-xl font-bold text-slate-900 mb-4">{formData.id ? 'Edit Application' : 'Add Application'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Company</label>
-                <input required type="text" value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none" placeholder="e.g. Google, Startup Inc" />
+                <label htmlFor="company" className="block text-sm font-medium text-slate-700 mb-1">Company</label>
+                <input id="company" required type="text" value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none" placeholder="e.g. Google, Startup Inc" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                <input required type="text" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none" placeholder="e.g. Frontend Intern" />
+                <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                <input id="role" required type="text" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none" placeholder="e.g. Frontend Intern" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                  <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none">
+                  <label htmlFor="status" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                  <select id="status" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none">
                     <option value="Draft">Draft</option>
                     <option value="Applied">Applied</option>
                     <option value="Interviewing">Interviewing</option>
@@ -532,13 +532,13 @@ export default function ApplicationsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                  <input type="date" value={formData.applicationDate} onChange={e => setFormData({ ...formData, applicationDate: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none" />
+                  <label htmlFor="applicationDate" className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                  <input id="applicationDate" type="date" value={formData.applicationDate} onChange={e => setFormData({ ...formData, applicationDate: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notes (Optional)</label>
-                <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none h-24 resize-none" placeholder="Interviewer names, next steps, feedback..." />
+                <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-1">Notes (Optional)</label>
+                <textarea id="notes" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none h-24 resize-none" placeholder="Interviewer names, next steps, feedback..." />
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>

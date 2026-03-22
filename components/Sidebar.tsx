@@ -40,7 +40,8 @@ export function Sidebar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                   isActive 
                     ? 'bg-indigo-500/10 text-indigo-400' 
                     : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
@@ -69,7 +70,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={logOut}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
         >
           <LogOut className="w-4 h-4 text-slate-500" />
           Sign Out
