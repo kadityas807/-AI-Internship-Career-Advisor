@@ -169,7 +169,7 @@ app.get('/api/jobs', async (req, res) => {
       results_per_page: '20',
       what: role,
       where: location,
-      content_type: 'application/json',
+      'content-type': 'application/json',
     });
 
     const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params.toString()}`;
