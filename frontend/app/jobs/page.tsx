@@ -59,15 +59,29 @@ export default function JobsPage() {
     try {
       const params = new URLSearchParams({ role, location });
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/jobs?${params.toString()}`);
+
+      // Guard: always check content-type before parsing JSON to avoid rendering raw HTML
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        setNotConfigured(true);
+        return;
+      }
+
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
         if (data.error === 'ADZUNA_NOT_CONFIGURED') {
           setNotConfigured(true);
           return;
         }
         throw new Error(data.message || 'Failed to fetch jobs');
       }
-      const data = await res.json();
+
+      if (data.error === 'ADZUNA_NOT_CONFIGURED') {
+        setNotConfigured(true);
+        return;
+      }
+
       setJobs(data.results || []);
       setTotalCount(data.count || 0);
     } catch (e: any) {

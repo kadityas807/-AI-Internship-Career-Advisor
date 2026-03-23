@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
-import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, ChevronRight, Fingerprint, Map, Menu, X, Search, Mic, Sparkles } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, Fingerprint, Map, Menu, X, Search, Mic, Sparkles, FileSearch, Linkedin, MailX, Mail, Scale, Users, Trophy, ListTodo, DollarSign, CalendarDays } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export function Sidebar() {
@@ -16,7 +16,7 @@ export function Sidebar() {
     setMobileOpen(false);
   }, [pathname]);
 
-  const links = [
+  const coreLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Skills', href: '/skills', icon: BookOpen },
     { name: 'Projects', href: '/projects', icon: Briefcase },
@@ -26,6 +26,19 @@ export function Sidebar() {
     { name: 'Mock Interview', href: '/interview', icon: Mic },
     { name: 'Career Fingerprint', href: '/fingerprint', icon: Fingerprint },
     { name: 'Time-to-Ready', href: '/roadmap', icon: Map },
+  ];
+
+  const toolLinks = [
+    { name: 'Resume Analyzer', href: '/resume', icon: FileSearch },
+    { name: 'LinkedIn Optimizer', href: '/linkedin', icon: Linkedin },
+    { name: 'Rejection Analyzer', href: '/rejection', icon: MailX },
+    { name: 'Cold Email Gen', href: '/cold-email', icon: Mail },
+    { name: 'Offer Comparison', href: '/offers', icon: Scale },
+    { name: 'Networking Tracker', href: '/networking', icon: Users },
+    { name: 'Badges', href: '/badges', icon: Trophy },
+    { name: 'Question Bank', href: '/question-bank', icon: ListTodo },
+    { name: 'Salary Insights', href: '/salary', icon: DollarSign },
+    { name: 'Study Plan', href: '/study-plan', icon: CalendarDays },
   ];
 
   const sidebarContent = (
@@ -48,10 +61,10 @@ export function Sidebar() {
         </div>
       )}
 
-      <div className="px-4 pb-4">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">Menu</div>
-        <nav className="flex-1 space-y-1">
-          {links.map((link) => {
+      <div className="px-4 pb-2 flex-1 overflow-y-auto">
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">Menu</div>
+        <nav className="space-y-0.5 mb-4">
+          {coreLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
             return (
@@ -59,7 +72,32 @@ export function Sidebar() {
                 key={link.name}
                 href={link.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+                  isActive 
+                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  {link.name}
+                </div>
+                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white/60" />}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">AI Tools</div>
+        <nav className="space-y-0.5">
+          {toolLinks.map((link) => {
+            const Icon = link.icon;
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                   isActive 
                     ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20' 
                     : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'

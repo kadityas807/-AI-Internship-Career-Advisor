@@ -60,6 +60,33 @@ app.post('/api/mentor', async (req, res) => {
   }
 });
 
+/**
+ * Robustly extract JSON from a string that might contain conversational text or markdown wrappers.
+ */
+function extractJSON(text: string): string {
+  const trimmed = text.trim();
+  
+  // Find the first occurrence of { or [
+  const braceIdx = trimmed.indexOf('{');
+  const bracketIdx = trimmed.indexOf('[');
+  
+  let startIdx = -1;
+  if (braceIdx !== -1 && bracketIdx !== -1) startIdx = Math.min(braceIdx, bracketIdx);
+  else if (braceIdx !== -1) startIdx = braceIdx;
+  else if (bracketIdx !== -1) startIdx = bracketIdx;
+  
+  if (startIdx === -1) return trimmed;
+  
+  // Find the last occurrence of } or ]
+  const lastBraceIdx = trimmed.lastIndexOf('}');
+  const lastBracketIdx = trimmed.lastIndexOf(']');
+  const endIdx = Math.max(lastBraceIdx, lastBracketIdx);
+  
+  if (endIdx === -1 || endIdx < startIdx) return trimmed;
+  
+  return trimmed.substring(startIdx, endIdx + 1);
+}
+
 app.post('/api/generate', async (req, res) => {
   try {
     const { prompt, schema } = req.body;
@@ -76,11 +103,7 @@ app.post('/api/generate', async (req, res) => {
     let modelText = await llm.invoke(fullPrompt);
 
     if (schema) {
-      modelText = modelText.trim();
-      if (modelText.startsWith('\`\`\`json')) modelText = modelText.replace(/^\`\`\`json/, '');
-      if (modelText.startsWith('\`\`\`')) modelText = modelText.replace(/^\`\`\`/, '');
-      if (modelText.endsWith('\`\`\`')) modelText = modelText.replace(/\`\`\`$/, '');
-      modelText = modelText.trim();
+      modelText = extractJSON(modelText);
     }
 
     res.json({ text: modelText });
@@ -89,6 +112,7 @@ app.post('/api/generate', async (req, res) => {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 });
+
 
 // File upload route
 import multer from 'multer';
@@ -131,7 +155,7 @@ app.post('/api/mentor/upload', upload.single('file'), async (req, res) => {
 // ── Adzuna Job Search Proxy ──────────────────────────────────────────────────
 app.get('/api/jobs', async (req, res) => {
   try {
-    const { role = 'software intern', location = 'london', page = '1', country = 'gb' } = req.query as any;
+    const { role = 'software intern', location = 'india', page = '1', country = 'in' } = req.query as any;
     const appId = process.env.ADZUNA_APP_ID;
     const appKey = process.env.ADZUNA_APP_KEY;
 
@@ -151,10 +175,19 @@ app.get('/api/jobs', async (req, res) => {
     const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params.toString()}`;
     const response = await fetch(url);
 
-    if (!response.ok) {
+    // Adzuna sometimes returns HTML error pages with HTTP 200 on bad credentials/params
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
       const errText = await response.text();
-      console.error('Adzuna error:', errText);
-      return res.status(response.status).json({ error: 'Adzuna API error', message: errText });
+      console.error('Adzuna non-JSON response:', response.status, errText.slice(0, 300));
+      // Treat as a config/auth problem so the frontend shows the setup banner
+      return res.status(503).json({ error: 'ADZUNA_NOT_CONFIGURED', message: 'Adzuna API returned an unexpected response. Check your ADZUNA_APP_ID and ADZUNA_APP_KEY.' });
+    }
+
+    if (!response.ok) {
+      const errData = await response.json() as any;
+      console.error('Adzuna error:', errData);
+      return res.status(response.status).json({ error: 'Adzuna API error', message: errData?.exception || 'Unknown error' });
     }
 
     const data = await response.json() as any;

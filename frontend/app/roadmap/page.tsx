@@ -5,7 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { Map, Loader2, ArrowRight, CheckCircle2, Target, Calendar } from 'lucide-react';
+import { Map, Loader2, ArrowRight, CheckCircle2, Target, Calendar, Award, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import Loader3D from '@/components/Loader3D';
@@ -17,6 +17,7 @@ interface RoadmapData {
     skills: string[];
     projects: string[];
     interviewPrep: string[];
+    certifications?: { name: string; url: string; }[];
   };
   weeklyPlan: {
     week: number;
@@ -80,6 +81,7 @@ export default function RoadmapPage() {
         Generate a personalized ${targetDuration}-week "Time-to-Ready Forecast" and roadmap.
         You MUST provide exactly ${targetDuration} weeks in the weeklyPlan array, mapping out realistic progression. 
         Adjust the pacing to fit the ${targetDuration}-week timeframe.
+        Also, suggest 2-3 highly relevant certifications for this role and provide valid, official URLs for them.
       `;
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`, {
@@ -98,8 +100,19 @@ export default function RoadmapPage() {
                   skills: { type: 'ARRAY', items: { type: 'STRING' } },
                   projects: { type: 'ARRAY', items: { type: 'STRING' } },
                   interviewPrep: { type: 'ARRAY', items: { type: 'STRING' } },
+                  certifications: {
+                    type: 'ARRAY',
+                    items: {
+                      type: 'OBJECT',
+                      properties: {
+                        name: { type: 'STRING' },
+                        url: { type: 'STRING', description: 'Official URL for the certification' }
+                      },
+                      required: ['name', 'url']
+                    }
+                  }
                 },
-                required: ['skills', 'projects', 'interviewPrep']
+                required: ['skills', 'projects', 'interviewPrep', 'certifications']
               },
               weeklyPlan: {
                 type: 'ARRAY',
@@ -224,7 +237,7 @@ export default function RoadmapPage() {
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <h2 className="text-xl font-bold text-slate-900 mb-6">Preparation Breakdown</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                   <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500" /> Skills to Learn
@@ -232,7 +245,7 @@ export default function RoadmapPage() {
                   <ul className="space-y-2">
                     {roadmap.breakdown.skills.map((item, i) => (
                       <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" /> {item}
+                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" /> <span>{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -244,7 +257,7 @@ export default function RoadmapPage() {
                   <ul className="space-y-2">
                     {roadmap.breakdown.projects.map((item, i) => (
                       <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" /> {item}
+                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" /> <span>{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -256,9 +269,35 @@ export default function RoadmapPage() {
                   <ul className="space-y-2">
                     {roadmap.breakdown.interviewPrep.map((item, i) => (
                       <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" /> {item}
+                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" /> <span>{item}</span>
                       </li>
                     ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-emerald-500" /> Certifications
+                  </h3>
+                  <ul className="space-y-3">
+                    {roadmap.breakdown.certifications?.map((cert, i) => (
+                      <li key={i} className="text-sm">
+                        <a 
+                          href={cert.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="group flex flex-col gap-1 p-2 -mx-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors"
+                        >
+                          <span className="font-medium text-slate-700 group-hover:text-indigo-600 flex items-center gap-1">
+                            {cert.name}
+                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          </span>
+                          <span className="text-xs text-slate-400 line-clamp-1">{cert.url}</span>
+                        </a>
+                      </li>
+                    ))}
+                    {(!roadmap.breakdown.certifications || roadmap.breakdown.certifications.length === 0) && (
+                      <li className="text-sm text-slate-500 italic">No specific certifications required.</li>
+                    )}
                   </ul>
                 </div>
               </div>
