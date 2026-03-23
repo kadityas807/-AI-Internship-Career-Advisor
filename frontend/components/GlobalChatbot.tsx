@@ -122,7 +122,7 @@ ${githubReposText}
         uid: user.uid, role: 'user', content: userMessageText, createdAt: serverTimestamp(), sessionId: activeSessionId
       });
 
-      const res = await fetch('/api/mentor', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/mentor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userMessage: userMessageText, history: messages, profileContext, userId: user.uid }),

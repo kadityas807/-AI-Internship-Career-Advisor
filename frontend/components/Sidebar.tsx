@@ -3,11 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
-import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, ChevronRight, Fingerprint, Map } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, ChevronRight, Fingerprint, Map, Menu, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { logOut, user } = useAuth();
+  const { logOut, user, isGuest } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const links = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -19,8 +26,8 @@ export function Sidebar() {
     { name: 'Time-to-Ready', href: '/roadmap', icon: Map },
   ];
 
-  return (
-    <div className="w-64 bg-slate-900 border-r border-slate-800 h-screen flex flex-col text-slate-300 font-sans">
+  const sidebarContent = (
+    <>
       <div className="p-6">
         <h1 className="text-xl font-bold text-white flex items-center gap-3 font-display tracking-tight">
           <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-sm shadow-indigo-500/20">
@@ -30,6 +37,13 @@ export function Sidebar() {
         </h1>
       </div>
       
+      {isGuest && (
+        <div className="mx-4 mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          <p className="text-xs text-amber-400 font-medium">🎮 Demo Mode</p>
+          <p className="text-[10px] text-amber-500/70 mt-0.5">Exploring with sample data</p>
+        </div>
+      )}
+
       <div className="px-4 pb-4">
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">Menu</div>
         <nav className="flex-1 space-y-1">
@@ -61,11 +75,11 @@ export function Sidebar() {
       <div className="mt-auto p-4 border-t border-slate-800">
         <div className="flex items-center gap-3 px-3 py-3 mb-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
           <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium text-sm">
-            {user?.email?.[0].toUpperCase() || 'U'}
+            {user?.email?.[0].toUpperCase() || (isGuest ? 'D' : 'U')}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.displayName || 'User'}</p>
-            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+            <p className="text-sm font-medium text-white truncate">{user?.displayName || (isGuest ? 'Demo User' : 'User')}</p>
+            <p className="text-xs text-slate-400 truncate">{user?.email || (isGuest ? 'Guest Account' : '')}</p>
           </div>
         </div>
         <button
@@ -73,9 +87,44 @@ export function Sidebar() {
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
         >
           <LogOut className="w-4 h-4 text-slate-500" />
-          Sign Out
+          {isGuest ? 'Exit Demo' : 'Sign Out'}
         </button>
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile toggle */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg"
+        aria-label="Open menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Mobile drawer overlay */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col text-slate-300 font-sans animate-in slide-in-from-left duration-300">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white"
+              aria-label="Close menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <div className="w-64 bg-slate-900 border-r border-slate-800 h-screen flex-col text-slate-300 font-sans hidden md:flex">
+        {sidebarContent}
+      </div>
+    </>
   );
 }

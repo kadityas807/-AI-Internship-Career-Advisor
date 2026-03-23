@@ -56,7 +56,7 @@ ${githubReposText}
 `;
 
       // 2. Fetch from Mentor API
-      const res = await fetch('/api/mentor', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/mentor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

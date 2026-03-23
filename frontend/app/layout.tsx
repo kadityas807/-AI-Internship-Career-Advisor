@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 import { AuthProvider } from '@/components/AuthProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import ToastProvider from '@/components/Toast';
 import { Inter, Outfit } from 'next/font/google';
 
 const inter = Inter({
@@ -25,6 +26,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <body suppressHydrationWarning className="bg-slate-50 text-slate-900 font-sans antialiased">
         <ErrorBoundary>
           <AuthProvider>
+            <ToastProvider />
             {children}
           </AuthProvider>
         </ErrorBoundary>
@@ -32,3 +34,4 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     </html>
   );
 }
+

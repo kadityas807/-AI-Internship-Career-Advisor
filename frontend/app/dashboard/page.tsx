@@ -79,7 +79,7 @@ export default function Dashboard() {
         Provide a peer benchmark report.
       `;
 
-      const res = await fetch('/api/generate', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

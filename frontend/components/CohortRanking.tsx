@@ -28,7 +28,7 @@ export default function CohortRanking() {
 
         const prompt = `Evaluate this student's rank among 100 similar students based on this data: ${JSON.stringify(data)}. Provide rank, tier, justification, gaps, missions, progression simulation, and motivational feedback.`;
 
-        const res = await fetch('/api/generate', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

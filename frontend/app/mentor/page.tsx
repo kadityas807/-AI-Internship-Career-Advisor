@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ReactMarkdown from 'react-markdown';
 import { processAgentActions } from '@/lib/agent-actions';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
+import { toast } from '@/components/Toast';
 
 export default function MentorPage() {
   const { user } = useAuth();
@@ -30,6 +31,37 @@ export default function MentorPage() {
   }>({ skillsCount: 0, projectsCount: 0, targetRole: '', topSkills: [] });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isListening, setIsListening] = useState(false);
+
+  const toggleVoice = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast('Voice input is not supported in this browser', 'warning');
+      return;
+    }
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => prev ? prev + ' ' + transcript : transcript);
+      setIsListening(false);
+      toast('Voice captured!', 'success');
+    };
+    recognition.onerror = () => {
+      setIsListening(false);
+      toast('Voice input failed. Please try again.', 'error');
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+    setIsListening(true);
+    toast('Listening... Speak now', 'info');
+  };
 
   // Fetch user profile data to build context
   useEffect(() => {
@@ -305,7 +337,7 @@ Turn an average student into a top 1% candidate.
       // Call the server-side API route (handles Hindsight memory + Gemini)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 25000);
-      const res = await fetch('/api/mentor', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/mentor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -362,7 +394,7 @@ Turn an average student into a top 1% candidate.
     formData.append('userId', user.uid);
 
     try {
-      const res = await fetch('/api/mentor/upload', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/mentor/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -401,7 +433,7 @@ Turn an average student into a top 1% candidate.
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 25000);
-      const res = await fetch('/api/mentor', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/mentor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userMessage: message, history: messages, profileContext, userId: user.uid }),
@@ -577,11 +609,24 @@ Turn an average student into a top 1% candidate.
               >
                 {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
               </button>
+              <button
+                type="button"
+                onClick={toggleVoice}
+                disabled={isLoading || isUploading}
+                className={`p-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0 ${
+                  isListening 
+                    ? 'bg-red-100 text-red-600 animate-pulse ring-2 ring-red-300' 
+                    : 'bg-slate-100 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50'
+                }`}
+                title={isListening ? 'Stop listening' : 'Voice input'}
+              >
+                <Mic className="w-5 h-5" />
+              </button>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask for resume feedback, interview prep, or career advice..."
+                placeholder={isListening ? 'Listening...' : 'Ask for resume feedback, interview prep, or career advice...'}
                 className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent focus:bg-white transition-all outline-none"
                 disabled={isLoading || isUploading}
               />

@@ -82,7 +82,7 @@ export default function RoadmapPage() {
         Adjust the pacing to fit the ${targetDuration}-week timeframe.
       `;
 
-      const res = await fetch('/api/generate', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

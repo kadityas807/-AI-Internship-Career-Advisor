@@ -261,7 +261,7 @@ export default function ApplicationsPage() {
       const projects = projectsSnap.docs.map(d => ({ title: d.data().title, description: d.data().description }));
       const prompt = `You are a career coach. The user applied for ${app.role} at ${app.company} and was ${app.status.toLowerCase()}. Notes: ${app.notes || 'None'}. Skills: ${skills.join(', ')}. Projects: ${JSON.stringify(projects)}. Diagnose the likely reason, what should have been done differently, and a concrete actionable fix.`;
       
-      const res = await fetch('/api/generate', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -313,7 +313,7 @@ export default function ApplicationsPage() {
         4. Write a 1-sentence summary of the email (e.g., "Invited to next technical screening round").
       `;
 
-      const res = await fetch('/api/generate', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
