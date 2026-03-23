@@ -128,6 +128,99 @@ app.post('/api/mentor/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// ── Adzuna Job Search Proxy ──────────────────────────────────────────────────
+app.get('/api/jobs', async (req, res) => {
+  try {
+    const { role = 'software intern', location = 'london', page = '1', country = 'gb' } = req.query as any;
+    const appId = process.env.ADZUNA_APP_ID;
+    const appKey = process.env.ADZUNA_APP_KEY;
+
+    if (!appId || !appKey) {
+      return res.status(503).json({ error: 'ADZUNA_NOT_CONFIGURED', message: 'Job listings API not configured on this server.' });
+    }
+
+    const params = new URLSearchParams({
+      app_id: appId,
+      app_key: appKey,
+      results_per_page: '20',
+      what: role,
+      where: location,
+      content_type: 'application/json',
+    });
+
+    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params.toString()}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Adzuna error:', errText);
+      return res.status(response.status).json({ error: 'Adzuna API error', message: errText });
+    }
+
+    const data = await response.json() as any;
+    const results = (data.results || []).map((job: any) => ({
+      id: job.id,
+      title: job.title,
+      company: job.company?.display_name || 'Unknown Company',
+      location: job.location?.display_name || '',
+      description: job.description,
+      salaryMin: job.salary_min,
+      salaryMax: job.salary_max,
+      created: job.created,
+      redirect_url: job.redirect_url,
+    }));
+
+    res.json({ count: data.count, results });
+  } catch (error: any) {
+    console.error('Jobs API error:', error);
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+// ── GitHub Repos Proxy ──────────────────────────────────────────────────────
+app.get('/api/github/repos/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const headers: Record<string, string> = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+    // Optionally use a token for higher rate limits
+    if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+
+    const reposRes = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=30&type=public`, { headers });
+    if (!reposRes.ok) {
+      const err = await reposRes.json() as any;
+      return res.status(reposRes.status).json({ error: err.message || 'GitHub API error' });
+    }
+    const repos = await reposRes.json() as any[];
+
+    // Fetch languages for each repo (up to 10 to avoid rate limiting)
+    const top = repos.slice(0, 10);
+    const withLangs = await Promise.all(top.map(async (repo: any) => {
+      try {
+        const langRes = await fetch(repo.languages_url, { headers });
+        const langs = langRes.ok ? Object.keys(await langRes.json()) : [];
+        return {
+          id: repo.id,
+          name: repo.name,
+          description: repo.description || '',
+          url: repo.html_url,
+          stars: repo.stargazers_count,
+          language: repo.language,
+          languages: langs,
+          topics: repo.topics || [],
+          updatedAt: repo.updated_at,
+        };
+      } catch {
+        return { id: repo.id, name: repo.name, description: repo.description || '', url: repo.html_url, stars: repo.stargazers_count, language: repo.language, languages: repo.language ? [repo.language] : [], topics: repo.topics || [], updatedAt: repo.updated_at };
+      }
+    }));
+
+    res.json({ repos: withLangs });
+  } catch (error: any) {
+    console.error('GitHub proxy error:', error);
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Backend server listening on port ${port}`);
 });

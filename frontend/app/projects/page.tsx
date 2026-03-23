@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import { motion, AnimatePresence } from 'motion/react';
 import SmartImport from '@/components/SmartImport';
+import GitHubImport from '@/components/GitHubImport';
 
 export default function ProjectsPage() {
   const { user } = useAuth();
@@ -93,6 +94,7 @@ export default function ProjectsPage() {
         </div>
         <div className="flex items-center gap-3">
           <SmartImport />
+          <GitHubImport />
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

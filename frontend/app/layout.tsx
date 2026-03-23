@@ -3,6 +3,7 @@ import './globals.css'; // Global styles
 import { AuthProvider } from '@/components/AuthProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import ToastProvider from '@/components/Toast';
+import GlobalBackground from '@/components/GlobalBackground';
 import { Inter, Outfit } from 'next/font/google';
 
 const inter = Inter({
@@ -23,13 +24,17 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
-      <body suppressHydrationWarning className="bg-slate-50 text-slate-900 font-sans antialiased">
-        <ErrorBoundary>
-          <AuthProvider>
-            <ToastProvider />
-            {children}
-          </AuthProvider>
-        </ErrorBoundary>
+      <body suppressHydrationWarning className="bg-slate-50 text-slate-900 font-sans antialiased relative min-h-screen">
+        <GlobalBackground />
+        
+        <div className="relative z-10">
+          <ErrorBoundary>
+            <AuthProvider>
+              <ToastProvider />
+              {children}
+            </AuthProvider>
+          </ErrorBoundary>
+        </div>
       </body>
     </html>
   );

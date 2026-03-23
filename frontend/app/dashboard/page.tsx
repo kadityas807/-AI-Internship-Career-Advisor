@@ -2,17 +2,84 @@
 
 import AppLayout from '@/components/AppLayout';
 import { useAuth } from '@/components/AuthProvider';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { BookOpen, Briefcase, FileText, ArrowRight, Sparkles, Activity, Loader2, Target } from 'lucide-react';
 import Link from 'next/link';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
-import { motion } from 'motion/react';
+import { motion, useMotionValue, useSpring, animate } from 'motion/react';
 import PopulateDemoData from '@/components/PopulateDemoData';
 import SmartImport from '@/components/SmartImport';
 import CohortRanking from '@/components/CohortRanking';
 import Loader3D from '@/components/Loader3D';
+
+// Animated counter component
+function AnimCountUp({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+  const prevRef = useRef(0);
+
+  useEffect(() => {
+    const target = value;
+    const duration = 800;
+    const start = prevRef.current;
+    const startTime = performance.now();
+    const frame = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(start + (target - start) * eased));
+      if (progress < 1) requestAnimationFrame(frame);
+      else prevRef.current = target;
+    };
+    requestAnimationFrame(frame);
+  }, [value]);
+
+  return <>{display}</>;
+}
+
+// Animated SVG readiness ring
+function ReadinessRing({ score, label }: { score: number; label: string }) {
+  const radius = 52;
+  const circ = 2 * Math.PI * radius;
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => setProgress(score), 100);
+    return () => clearTimeout(t);
+  }, [score]);
+
+  const color = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#6366f1';
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-36 h-36">
+        {/* Glow effect */}
+        <div className={`absolute inset-0 rounded-full blur-2xl opacity-40 ${
+          score >= 75 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-indigo-500'
+        }`} style={{ transform: 'scale(0.85)' }} />
+        
+        <svg className="relative z-10 w-full h-full -rotate-90" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="10" />
+          <circle
+            cx="60" cy="60" r={radius} fill="none"
+            stroke={color}
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={circ * (1 - progress / 100)}
+            style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-black text-slate-900">{Math.round(progress)}%</span>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ready</span>
+        </div>
+      </div>
+      <p className="text-sm text-slate-500 mt-3 text-center max-w-[180px] leading-snug">{label}</p>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -162,14 +229,39 @@ export default function Dashboard() {
 
       {/* Readiness Score + Cohort Ranking */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-6">
-            <Target className="w-6 h-6 text-indigo-500" /> Readiness Score
-          </h2>
-          <div className="text-5xl font-bold text-indigo-600 mb-2">74%</div>
-          <p className="text-slate-600 mb-6">You need 2 more projects to reach 90% readiness.</p>
-          <div className="w-full bg-slate-100 rounded-full h-4">
-            <div className="bg-indigo-600 h-4 rounded-full" style={{ width: '74%' }}></div>
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-8 h-fit self-start">
+          {(() => {
+            const score = Math.min(100, (stats.skills * 5) + (stats.projects * 15) + (stats.applications * 5));
+            const label = score >= 75 ? 'Great momentum — keep applying!' :
+              score >= 50 ? 'You need a few more projects to stand out.' :
+              'Add skills and projects to boost your score.';
+            return <ReadinessRing score={score} label={label} />;
+          })()}
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <Target className="w-5 h-5 text-indigo-500" /> Readiness Score
+            </h2>
+            <ul className="space-y-2 text-sm">
+              {[
+                { label: 'Skills', val: stats.skills, max: 10, color: 'bg-indigo-500' },
+                { label: 'Projects', val: stats.projects, max: 5, color: 'bg-emerald-500' },
+                { label: 'Applications', val: stats.applications, max: 10, color: 'bg-amber-500' },
+              ].map(({ label, val, max, color }) => (
+                <li key={label}>
+                  <div className="flex justify-between text-xs text-slate-500 mb-1">
+                    <span>{label}</span><span>{val}/{max}</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full ${color} rounded-full`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (val / max) * 100)}%` }}
+                      transition={{ duration: 1, delay: 0.3 }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
         <CohortRanking />
@@ -239,7 +331,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-slate-900 font-display">Skills Ledger</h2>
             </div>
             <div className="mt-auto flex items-end justify-between">
-              <span className="text-5xl font-light text-slate-900 tracking-tight">{stats.skills}</span>
+              <span className="text-5xl font-light text-slate-900 tracking-tight"><AnimCountUp value={stats.skills} /></span>
               <Link href="/skills" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                 Manage <ArrowRight className="w-4 h-4" />
               </Link>
@@ -255,7 +347,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-slate-900 font-display">Project Registry</h2>
             </div>
             <div className="mt-auto flex items-end justify-between">
-              <span className="text-5xl font-light text-slate-900 tracking-tight">{stats.projects}</span>
+              <span className="text-5xl font-light text-slate-900 tracking-tight"><AnimCountUp value={stats.projects} /></span>
               <Link href="/projects" className="text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                 Manage <ArrowRight className="w-4 h-4" />
               </Link>
@@ -271,7 +363,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-slate-900 font-display">Applications</h2>
             </div>
             <div className="mt-auto flex items-end justify-between">
-              <span className="text-5xl font-light text-slate-900 tracking-tight">{stats.applications}</span>
+              <span className="text-5xl font-light text-slate-900 tracking-tight"><AnimCountUp value={stats.applications} /></span>
               <Link href="/applications" className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                 Manage <ArrowRight className="w-4 h-4" />
               </Link>

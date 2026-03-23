@@ -5,11 +5,45 @@ import { useAuth } from '@/components/AuthProvider';
 import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { Fingerprint, Loader2, Sparkles, Brain, Users, BookOpen, Target } from 'lucide-react';
-import { GoogleGenAI, Type } from '@google/genai';
+import { Fingerprint, Loader2, Sparkles, Brain, Users, BookOpen, Target, Share2, Copy, Check } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import { motion, AnimatePresence } from 'motion/react';
 import Loader3D from '@/components/Loader3D';
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Radar } from 'react-chartjs-2';
+
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
+
+// Derive radar scores from fingerprint text signals
+function deriveRadarScores(fp: FingerprintData): number[] {
+  const text = [
+    fp.thinkingStyle, fp.collaborationSignature, fp.narrativeVoice,
+    fp.uniqueValueProposition, fp.narrativeArc?.theme,
+    ...(fp.softSkills || []).map(s => s.skill + ' ' + s.evidence)
+  ].join(' ').toLowerCase();
+
+  const score = (keywords: string[]) => {
+    const hits = keywords.filter(k => text.includes(k)).length;
+    return Math.min(5, 2 + hits);
+  };
+
+  return [
+    score(['problem', 'analytic', 'debug', 'solve', 'root cause', 'critical']),
+    score(['engineer', 'code', 'build', 'tech', 'system', 'architect', 'software']),
+    score(['communicat', 'present', 'document', 'explain', 'articulate', 'narrative']),
+    score(['creat', 'innovat', 'design', 'invent', 'novel', 'originat']),
+    score(['team', 'collaborat', 'cross', 'pair', 'mentor', 'support']),
+    score(['deliver', 'ship', 'execut', 'launch', 'complet', 'producti']),
+  ];
+}
 
 interface FingerprintData {
   thinkingStyle: string;
@@ -231,89 +265,198 @@ export default function FingerprintPage() {
             key="results"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
           >
-            {/* Core Identity */}
-            <div className="bg-slate-900 rounded-3xl p-8 md:p-10 text-white relative overflow-hidden shadow-xl">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/3"></div>
-              <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6">
-                  <Target className="w-3.5 h-3.5" /> Unique Value Proposition
-                </div>
-                <h2 className="text-3xl md:text-4xl font-bold mb-6 font-display leading-tight">
-                  {fingerprint.uniqueValueProposition}
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 pt-10 border-t border-slate-700/50">
-                  <div>
-                    <div className="text-indigo-400 text-sm font-semibold mb-2 flex items-center gap-2">
-                      <Brain className="w-4 h-4" /> Thinking Style
-                    </div>
-                    <p className="text-slate-300 leading-relaxed">{fingerprint.thinkingStyle}</p>
-                  </div>
-                  <div>
-                    <div className="text-emerald-400 text-sm font-semibold mb-2 flex items-center gap-2">
-                      <Users className="w-4 h-4" /> Collaboration
-                    </div>
-                    <p className="text-slate-300 leading-relaxed">{fingerprint.collaborationSignature}</p>
-                  </div>
-                  <div>
-                    <div className="text-amber-400 text-sm font-semibold mb-2 flex items-center gap-2">
-                      <BookOpen className="w-4 h-4" /> Narrative Voice
-                    </div>
-                    <p className="text-slate-300 leading-relaxed">{fingerprint.narrativeVoice}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {(() => {
+              const scores = deriveRadarScores(fingerprint);
+              const dims = ['Problem Solving','Technical','Communication','Creativity','Collaboration','Execution'];
+              const topIdx = scores.indexOf(Math.max(...scores));
+              const topDim = dims[topIdx];
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Narrative Arc Builder */}
-              <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <BookOpen className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 font-display">Narrative Arc</h3>
-                </div>
-                <p className="text-slate-600 mb-8 leading-relaxed">
-                  <strong className="text-slate-900">Core Theme:</strong> {fingerprint.narrativeArc.theme}
-                </p>
-                
-                <div className="space-y-4">
-                  {fingerprint.narrativeArc.storyFrames.map((frame, i) => (
-                    <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">Audience: {frame.audience}</div>
-                      <p className="text-slate-700 text-sm leading-relaxed">{frame.frame}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              return (
+                <>
+                  {/* BIG HERO CARD (8 cols) */}
+                  <div className="lg:col-span-8 bg-slate-900/95 backdrop-blur-md rounded-3xl p-8 md:p-10 text-white relative overflow-hidden shadow-2xl border border-indigo-500/20 flex flex-col justify-between group hover:-translate-y-1 transition-all duration-300 cursor-default">
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/3 transition-transform duration-700 group-hover:translate-x-1/4 group-hover:scale-110"></div>
+                    <div className="absolute bottom-0 left-0 w-80 h-80 bg-violet-600/20 blur-[100px] rounded-full -translate-x-1/3 translate-y-1/3 group-hover:-translate-y-1/4 transition-transform duration-700"></div>
 
-              {/* Soft Skill Evidence Mining */}
-              <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 font-display">Mined Soft Skills</h3>
-                </div>
-                <p className="text-slate-500 mb-8 text-sm">
-                  Technical skills are visible. Soft skills require evidence. Here is what your projects prove about you.
-                </p>
-                
-                <div className="space-y-4">
-                  {fingerprint.softSkills.map((skill, i) => (
-                    <div key={i} className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
-                      <div className="font-bold text-slate-900 mb-1">{skill.skill}</div>
-                      <p className="text-slate-600 text-sm leading-relaxed">
-                        <span className="font-semibold text-emerald-700">Evidence:</span> {skill.evidence}
-                      </p>
+                    <div className="relative z-10 flex-1 flex flex-col justify-center">
+                      <div className="inline-flex items-center gap-2 mb-8">
+                        <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/5">
+                          <Fingerprint className="w-4 h-4 text-indigo-300" />
+                        </div>
+                        <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Unique Value Proposition</span>
+                      </div>
+                      
+                      <h2 className="text-2xl md:text-3xl font-display font-medium leading-relaxed text-slate-100 italic drop-shadow-sm">
+                        "{fingerprint.uniqueValueProposition}"
+                      </h2>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+
+                    <div className="relative z-10 mt-10 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/30 flex items-center justify-center border border-indigo-400/30">
+                          <Target className="w-5 h-5 text-indigo-200" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Top Strength</p>
+                          <p className="text-sm font-bold text-white">{topDim}</p>
+                        </div>
+                      </div>
+                      <div className="text-xs font-medium text-slate-400">careermentor.ai</div>
+                    </div>
+                  </div>
+
+                  {/* RADAR CHART (4 cols) */}
+                  <div className="lg:col-span-4 bg-slate-900/95 backdrop-blur-md rounded-3xl border border-indigo-500/20 shadow-2xl p-6 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-indigo-500/20 blur-[60px] rounded-full pointer-events-none"></div>
+                    
+                    <h3 className="text-sm font-bold text-indigo-300 uppercase tracking-widest mb-2 flex items-center gap-2 relative z-10">
+                      <svg className="w-4 h-4 text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <polygon points="12,2 22,8 22,16 12,22 2,16 2,8" strokeWidth="2" strokeLinejoin="round" />
+                      </svg>
+                      Strength Radar
+                    </h3>
+                    
+                    <div className="flex-1 min-h-[380px] w-full relative z-10 -mt-2">
+                      <Radar
+                        data={{
+                          labels: ['Problem Solving', 'Technical', 'Communication', 'Creativity', 'Collaboration', 'Execution'],
+                          datasets: [{
+                            label: 'Strength',
+                            data: scores,
+                            backgroundColor: 'rgba(99,102,241,0.35)',
+                            borderColor: 'rgba(129,140,248,1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#818cf8',
+                            pointHoverBackgroundColor: '#ffffff',
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            fill: true,
+                          }],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            r: {
+                              min: 0, max: 5,
+                              ticks: { stepSize: 1, display: false },
+                              pointLabels: { 
+                                font: { size: 13, weight: 'bold', family: "'Inter', sans-serif" }, 
+                                color: '#e2e8f0',
+                              },
+                              grid: { color: 'rgba(255,255,255,0.08)' },
+                              angleLines: { color: 'rgba(255,255,255,0.08)' },
+                            },
+                          },
+                          plugins: { 
+                            legend: { display: false }, 
+                            tooltip: { 
+                              enabled: true, 
+                              backgroundColor: 'rgba(15,23,42,0.95)', 
+                              titleColor: '#fff', 
+                              bodyColor: '#fff', 
+                              padding: 12, 
+                              cornerRadius: 8, 
+                              displayColors: false,
+                              borderColor: 'rgba(129,140,248,0.4)',
+                              borderWidth: 1.5
+                            } 
+                          },
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="mt-4 flex flex-wrap gap-1.5 justify-center relative z-10">
+                      {scores.map((s, i) => (
+                         s >= 4 && (
+                           <span key={i} className="px-2.5 py-1 bg-indigo-500/20 backdrop-blur-md text-indigo-300 text-[10px] font-bold uppercase rounded-full border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-transform duration-300 group-hover:scale-105 cursor-default">
+                             {dims[i]}
+                           </span>
+                         )
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* THE 3 SIGNATURE TRAITS (4 cols each) */}
+                  <div className="lg:col-span-4 bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:bg-white/80 shrink-0">
+                    <div className="w-12 h-12 bg-white/80 shadow-sm rounded-2xl flex items-center justify-center mb-6 border border-blue-100 backdrop-blur-sm">
+                      <Brain className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 font-display mb-3">Thinking Style</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed">{fingerprint.thinkingStyle}</p>
+                  </div>
+
+                  <div className="lg:col-span-4 bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:bg-white/80 shrink-0">
+                    <div className="w-12 h-12 bg-white/80 shadow-sm rounded-2xl flex items-center justify-center mb-6 border border-emerald-100 backdrop-blur-sm">
+                      <Users className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 font-display mb-3">Collaboration</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed">{fingerprint.collaborationSignature}</p>
+                  </div>
+
+                  <div className="lg:col-span-4 bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:bg-white/80 shrink-0">
+                    <div className="w-12 h-12 bg-white/80 shadow-sm rounded-2xl flex items-center justify-center mb-6 border border-amber-100 backdrop-blur-sm">
+                      <BookOpen className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 font-display mb-3">Narrative Voice</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed">{fingerprint.narrativeVoice}</p>
+                  </div>
+
+                  {/* NARRATIVE ARC (6 cols) */}
+                  <div className="lg:col-span-6 bg-white/40 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col hover:-translate-y-1 hover:bg-white/50 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-sm border border-slate-200/50">
+                        <Share2 className="w-5 h-5 text-slate-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 font-display">Narrative Arc</h3>
+                    </div>
+                    
+                    <div className="bg-white/70 backdrop-blur-md p-5 rounded-2xl border border-white/60 shadow-sm mb-6 transition-colors hover:bg-white">
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Core Theme</p>
+                      <p className="text-slate-800 font-medium">{fingerprint.narrativeArc.theme}</p>
+                    </div>
+                    
+                    <div className="space-y-4 flex-1">
+                      {fingerprint.narrativeArc.storyFrames.map((frame, i) => (
+                        <div key={i} className="pl-5 border-l-[3px] border-indigo-300/50 py-1 transition-all hover:border-indigo-400">
+                          <div className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1">Target: {frame.audience}</div>
+                          <p className="text-slate-600 text-sm leading-relaxed">{frame.frame}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* MINED SOFT SKILLS (6 cols) */}
+                  <div className="lg:col-span-6 bg-white/40 backdrop-blur-md rounded-3xl p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col hover:-translate-y-1 hover:bg-white/50 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center border border-teal-100 shadow-sm">
+                        <Sparkles className="w-5 h-5 text-teal-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 font-display">Mined Soft Skills</h3>
+                        <p className="text-xs text-slate-500 mt-1">Extracted from your project history</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3 flex-1">
+                      {fingerprint.softSkills.map((skill, i) => (
+                        <div key={i} className="group p-5 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/80 hover:border-teal-200/60 hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md">
+                          <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-2">
+                             <Check className="w-4 h-4 text-teal-500 transition-transform group-hover:scale-110" />
+                             {skill.skill}
+                          </div>
+                          <p className="text-slate-600 text-sm leading-relaxed pl-6">
+                            {skill.evidence}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </motion.div>
         ) : null}
       </AnimatePresence>

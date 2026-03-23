@@ -535,9 +535,24 @@ Turn an average student into a top 1% candidate.
                 <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
                   <Bot className="w-5 h-5 text-indigo-600" />
                 </div>
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
-                  <span className="text-sm text-slate-500 font-medium">Thinking...</span>
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-1.5">
+                  {[0, 1, 2].map(i => (
+                    <span
+                      key={i}
+                      className="w-2.5 h-2.5 rounded-full bg-indigo-400"
+                      style={{
+                        animation: `bounce 1.2s infinite ease-in-out`,
+                        animationDelay: `${i * 0.2}s`,
+                        display: 'inline-block',
+                      }}
+                    />
+                  ))}
+                  <style>{`
+                    @keyframes bounce {
+                      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+                      30% { transform: translateY(-6px); opacity: 1; }
+                    }
+                  `}</style>
                 </div>
               </div>
             )}

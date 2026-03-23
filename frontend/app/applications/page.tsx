@@ -5,7 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { Plus, Trash2, Edit2, Building2, BrainCircuit, Loader2, ExternalLink, Code2, Github, Linkedin, Trophy, BookOpen, Globe, Mail, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Building2, BrainCircuit, Loader2, ExternalLink, Code2, Github, Linkedin, Trophy, BookOpen, Globe, Mail, Sparkles, CheckCircle2, FileEdit, Copy, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
@@ -130,6 +130,13 @@ export default function ApplicationsPage() {
   const [analyzingAppId, setAnalyzingAppId] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [formData, setFormData] = useState({ id: '', company: '', role: '', status: 'Draft', applicationDate: '', notes: '' });
+
+  // ── Cover Letter ─────────────────────────────────────────────────────────────
+  const [coverLetterAppId, setCoverLetterAppId] = useState<string | null>(null);
+  const [jobDesc, setJobDesc] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
+  const [generatingCover, setGeneratingCover] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // ── Platform Profiles ───────────────────────────────────────────────────────
   const [profiles, setProfiles] = useState<Record<string, string>>({});
@@ -289,6 +296,54 @@ export default function ApplicationsPage() {
     } finally {
       setAnalyzingAppId(null);
     }
+  };
+
+  const generateCoverLetter = async (app: any) => {
+    if (!user) return;
+    setGeneratingCover(true);
+    setCoverLetter('');
+    try {
+      const skillsSnap = await getDocs(collection(db, 'users', user.uid, 'skills'));
+      const skills = skillsSnap.docs.map(d => d.data().name as string);
+      const projectsSnap = await getDocs(collection(db, 'users', user.uid, 'projects'));
+      const projects = projectsSnap.docs.map(d => ({
+        title: d.data().name || d.data().title,
+        description: (d.data().description || '').slice(0, 100),
+        techStack: (d.data().techStack || []).join(', '),
+      }));
+
+      const prompt = `Write a professional, enthusiastic, and concise cover letter (3 short paragraphs) for the following:
+
+Role: ${app.role}
+Company: ${app.company}
+Job Description: ${jobDesc || 'Not provided — write a general cover letter for this role.'}
+
+Candidate profile:
+- Skills: ${skills.join(', ') || 'Not listed'}
+- Projects: ${projects.map(p => `${p.title} (${p.techStack})`).join('; ') || 'Not listed'}
+
+Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. End with a call-to-action.`;
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) throw new Error('API error');
+      const { text } = await res.json();
+      setCoverLetter(text || '');
+    } catch (e) {
+      console.error('Cover letter error:', e);
+      setCoverLetter('Failed to generate cover letter. Please try again.');
+    } finally {
+      setGeneratingCover(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(coverLetter);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const scanEmail = async () => {
@@ -469,6 +524,7 @@ export default function ApplicationsPage() {
                 <th className="px-6 py-4 font-semibold text-slate-700 text-sm">Role</th>
                 <th className="px-6 py-4 font-semibold text-slate-700 text-sm">Date</th>
                 <th className="px-6 py-4 font-semibold text-slate-700 text-sm">Status</th>
+                <th className="px-6 py-4 font-semibold text-slate-700 text-sm text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -491,11 +547,35 @@ export default function ApplicationsPage() {
                       {app.status}
                     </span>
                   </td>
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => { setJobDesc(''); setCoverLetter(''); setCoverLetterAppId(app.id); }}
+                        title="Generate Cover Letter"
+                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                      >
+                        <FileEdit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => analyzeRejection(app)}
+                        title="Analyze Rejection"
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      >
+                        <BrainCircuit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => openEditModal(app)} title="Edit" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(app.id)} title="Delete" className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {apps.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm">
                     No applications tracked yet. Click <strong>+ Add Application</strong> to get started.
                   </td>
                 </tr>
@@ -662,6 +742,65 @@ export default function ApplicationsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Cover Letter Modal ─────────────────────────────────────────────────── */}
+      {coverLetterAppId && (() => {
+        const app = apps.find(a => a.id === coverLetterAppId);
+        if (!app) return null;
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl border border-violet-100 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <FileEdit className="w-5 h-5 text-violet-500" />
+                  Cover Letter — {app.role} at {app.company}
+                </h2>
+                <button onClick={() => { setCoverLetterAppId(null); setCoverLetter(''); }} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+              </div>
+
+              {!coverLetter ? (
+                <>
+                  <p className="text-sm text-slate-600 mb-3">Paste the job description for a tailored letter, or leave blank for a general one.</p>
+                  <textarea
+                    value={jobDesc}
+                    onChange={e => setJobDesc(e.target.value)}
+                    placeholder="Paste job description here (optional)..."
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-violet-500 h-36 resize-none bg-slate-50/50 mb-4"
+                    disabled={generatingCover}
+                  />
+                  <div className="flex justify-end gap-3">
+                    <button onClick={() => setCoverLetterAppId(null)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium">Cancel</button>
+                    <button
+                      onClick={() => generateCoverLetter(app)}
+                      disabled={generatingCover}
+                      className="px-5 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {generatingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      {generatingCover ? 'Generating...' : 'Generate Letter'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <pre className="whitespace-pre-wrap text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-xl p-5 leading-relaxed mb-4 font-sans">{coverLetter}</pre>
+                  <div className="flex justify-end gap-3">
+                    <button onClick={() => setCoverLetter('')} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium border border-slate-200">Regenerate</button>
+                    <button
+                      onClick={copyToClipboard}
+                      className={`px-5 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors ${
+                        copied ? 'bg-emerald-600 text-white' : 'bg-violet-600 text-white hover:bg-violet-700'
+                      }`}
+                    >
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copied ? 'Copied!' : 'Copy to Clipboard'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </AppLayout>
   );
 }

@@ -11,6 +11,7 @@ import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import { motion, AnimatePresence } from 'motion/react';
 import SmartImport from '@/components/SmartImport';
 import SkillsVisualizer from '@/components/SkillsVisualizer';
+import SkillsGap from '@/components/SkillsGap';
 
 export default function SkillsPage() {
   const { user } = useAuth();
@@ -221,6 +222,8 @@ export default function SkillsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <SkillsGap userSkills={skills.map((s: any) => s.name)} />
     </AppLayout>
   );
 }

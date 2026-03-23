@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
-import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, ChevronRight, Fingerprint, Map, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, ChevronRight, Fingerprint, Map, Menu, X, Search, Mic, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export function Sidebar() {
@@ -21,20 +21,24 @@ export function Sidebar() {
     { name: 'Skills', href: '/skills', icon: BookOpen },
     { name: 'Projects', href: '/projects', icon: Briefcase },
     { name: 'Applications', href: '/applications', icon: FileText },
+    { name: 'Job Board', href: '/jobs', icon: Search },
     { name: 'AI Mentor', href: '/mentor', icon: MessageSquare },
+    { name: 'Mock Interview', href: '/interview', icon: Mic },
     { name: 'Career Fingerprint', href: '/fingerprint', icon: Fingerprint },
     { name: 'Time-to-Ready', href: '/roadmap', icon: Map },
   ];
 
   const sidebarContent = (
     <>
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-white flex items-center gap-3 font-display tracking-tight">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-sm shadow-indigo-500/20">
-            <MessageSquare className="w-4 h-4 text-white" />
+      <div className="p-5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <Sparkles className="w-4 h-4 text-white" />
           </div>
-          Career Mentor
-        </h1>
+          <span className="text-base font-bold text-white tracking-tight">
+            Career<span className="text-indigo-400">Mentor</span>
+          </span>
+        </div>
       </div>
       
       {isGuest && (
@@ -55,17 +59,17 @@ export function Sidebar() {
                 key={link.name}
                 href={link.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                   isActive 
-                    ? 'bg-indigo-500/10 text-indigo-400' 
-                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
                   {link.name}
                 </div>
-                {isActive && <ChevronRight className="w-4 h-4 text-indigo-500/50" />}
+                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white/60" />}
               </Link>
             );
           })}
