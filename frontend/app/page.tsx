@@ -347,6 +347,28 @@ export default function LandingPage() {
       </section>
 
       <footer className="bg-transparent border-t border-slate-200/50 py-8 px-6 text-center text-sm text-slate-500">
+        <div className="mb-4 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/terms"
+            className="px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all font-medium text-xs"
+          >
+            Terms &amp; Conditions
+          </a>
+          <span className="text-slate-300">·</span>
+          <a
+            href="/privacy"
+            className="px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all font-medium text-xs"
+          >
+            Privacy Policy
+          </a>
+          <span className="text-slate-300">·</span>
+          <a
+            href="/contact"
+            className="px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all font-medium text-xs"
+          >
+            Contact Support
+          </a>
+        </div>
         Built with ❤️ for hackathon — <strong className="text-slate-700">CareerMentor AI</strong>
       </footer>
     </div>
