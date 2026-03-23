@@ -8,7 +8,7 @@ import { collection, query, onSnapshot, doc, setDoc, serverTimestamp, getDocs, g
 import { v4 as uuidv4 } from 'uuid';
 import { MessageSquare, X, Bot, User as UserIcon, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { processAgentActions } from '@/lib/agent-actions';
 
 export default function GlobalChatbot() {
@@ -21,9 +21,6 @@ export default function GlobalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
 
   // Build minimal context without updating state continuously
   useEffect(() => {
@@ -107,6 +104,9 @@ ${githubReposText}
     });
     return () => unsubscribe();
   }, [user, isOpen]);
+
+  // If we are already on the mentor page, don't show the floating widget
+  if (pathname === '/mentor') return null;
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
