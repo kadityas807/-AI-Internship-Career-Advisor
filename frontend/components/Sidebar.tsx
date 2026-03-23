@@ -4,12 +4,25 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, Fingerprint, Map, Menu, X, Search, Mic, Sparkles, FileSearch, Linkedin, MailX, Mail, Scale, Users, Trophy, ListTodo, DollarSign, CalendarDays } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { logOut, user, isGuest } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Restore scroll position
+  useEffect(() => {
+    const saved = sessionStorage.getItem('sidebar-scroll');
+    if (saved && scrollRef.current) {
+      scrollRef.current.scrollTop = parseInt(saved, 10);
+    }
+  }, []);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    sessionStorage.setItem('sidebar-scroll', e.currentTarget.scrollTop.toString());
+  };
 
   // Close on route change
   useEffect(() => {
@@ -61,7 +74,7 @@ export function Sidebar() {
         </div>
       )}
 
-      <div className="px-4 pb-2 flex-1 overflow-y-auto">
+      <div ref={scrollRef} onScroll={handleScroll} className="px-4 pb-2 flex-1 overflow-y-auto">
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">Menu</div>
         <nav className="space-y-0.5 mb-4">
           {coreLinks.map((link) => {
