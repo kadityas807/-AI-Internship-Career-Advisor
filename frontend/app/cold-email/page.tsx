@@ -3,9 +3,9 @@
 import AppLayout from '@/components/AppLayout';
 import { useAuth } from '@/components/AuthProvider';
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { Mail, Loader2, Copy, CheckCheck } from 'lucide-react';
+import { Mail, Loader2, Copy, CheckCheck, Clock, Send, User, Building2, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function ColdEmailPage() {
@@ -19,11 +19,26 @@ export default function ColdEmailPage() {
   const [copied, setCopied] = useState(false);
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [userProjects, setUserProjects] = useState<string[]>([]);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     getDocs(collection(db, 'users', user.uid, 'skills')).then(s => setUserSkills(s.docs.map(d => d.data().name)));
     getDocs(collection(db, 'users', user.uid, 'projects')).then(s => setUserProjects(s.docs.map(d => d.data().title)));
+    // Load last saved email
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid, 'coldEmails', 'latest'));
+        if (snap.exists()) {
+          const d = snap.data();
+          setGeneratedEmail(d.email || '');
+          setSavedAt(d.generatedAt);
+          if (d.company) setCompany(d.company);
+          if (d.role) setRole(d.role);
+          if (d.recruiter) setRecruiter(d.recruiter);
+        }
+      } catch (e) { console.error('Failed to load:', e); }
+    })();
   }, [user]);
 
   const generate = async () => {
@@ -41,7 +56,15 @@ export default function ColdEmailPage() {
       });
       if (!res.ok) throw new Error('API Error');
       const { text } = await res.json();
-      setGeneratedEmail(text?.replace(/^"|"$/g, '') || '');
+      const email = text?.replace(/^"|"$/g, '') || '';
+      setGeneratedEmail(email);
+      const now = new Date().toISOString();
+      setSavedAt(now);
+      if (user) {
+        await setDoc(doc(db, 'users', user.uid, 'coldEmails', 'latest'), {
+          email, company, role, recruiter, generatedAt: now,
+        });
+      }
     } catch {
       setError('Failed to generate email. Please try again.');
     } finally {
@@ -55,6 +78,8 @@ export default function ColdEmailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const wordCount = generatedEmail.split(/\s+/).filter(Boolean).length;
+
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto">
@@ -65,7 +90,7 @@ export default function ColdEmailPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-slate-900">Cold Email Generator</h1>
-              <p className="text-slate-500 mt-1">Generate a personalized cold email using your skills and projects.</p>
+              <p className="text-slate-500 mt-1">Stand out from the crowd with AI-crafted outreach emails.</p>
             </div>
           </div>
         </motion.div>
@@ -86,41 +111,76 @@ export default function ColdEmailPage() {
           </div>
         )}
 
+        {savedAt && !loading && generatedEmail && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-slate-400">
+            <Clock className="w-3.5 h-3.5" />
+            Last generated: {new Date(savedAt).toLocaleString()}
+          </div>
+        )}
+
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Company Name *</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-slate-400" /> Company Name *
+              </label>
               <input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Google, Stripe, OpenAI" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Recruiter Name (optional)</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-slate-400" /> Recruiter Name (optional)
+              </label>
               <input value={recruiter} onChange={e => setRecruiter(e.target.value)} placeholder="e.g. Sarah Johnson" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-sm" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Target Role *</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+              <Briefcase className="w-3.5 h-3.5 text-slate-400" /> Target Role *
+            </label>
             <input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Software Engineer Intern, ML Research Intern" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-sm" />
           </div>
-          <button
-            onClick={generate}
-            disabled={loading || !company.trim() || !role.trim()}
+          <button onClick={generate} disabled={loading || !company.trim() || !role.trim()}
             className="w-full py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
           >
-            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Crafting your email...</> : <><Mail className="w-4 h-4" /> Generate Cold Email</>}
+            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Crafting your email...</> : <><Send className="w-4 h-4" /> Generate Cold Email</>}
           </button>
         </div>
 
         <AnimatePresence>
           {generatedEmail && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-                <p className="font-semibold text-slate-700">Your Cold Email</p>
-                <button onClick={copy} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition-colors">
-                  {copied ? <><CheckCheck className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy Email</>}
-                </button>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              {/* Email Preview Card */}
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center">
+                      <Mail className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700 text-sm">Your Cold Email</p>
+                      <p className="text-xs text-slate-400">To: {recruiter || 'Hiring Manager'} at {company}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400 hidden sm:block">{wordCount} words</span>
+                    <button onClick={copy} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition-colors">
+                      {copied ? <><CheckCheck className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy Email</>}
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{generatedEmail}</p>
+                </div>
               </div>
-              <div className="p-6">
-                <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{generatedEmail}</p>
+
+              {/* Tips */}
+              <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4">
+                <p className="text-xs font-semibold text-violet-700 mb-2">💡 Pro Tips</p>
+                <ul className="text-xs text-violet-600 space-y-1">
+                  <li>• Send between 7-9 AM in the recruiter&apos;s timezone</li>
+                  <li>• Follow up in 3-5 days if no response</li>
+                  <li>• Personalize further by mentioning a recent company news</li>
+                </ul>
               </div>
             </motion.div>
           )}

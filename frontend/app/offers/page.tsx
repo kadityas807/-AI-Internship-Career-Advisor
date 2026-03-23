@@ -1,8 +1,11 @@
 'use client';
 
 import AppLayout from '@/components/AppLayout';
-import { useState } from 'react';
-import { Scale, Loader2, Plus, Trash2, Trophy } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { db } from '@/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { Scale, Loader2, Plus, Trash2, Trophy, Clock, Award, ThumbsUp, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Offer {
@@ -22,10 +25,27 @@ interface ComparisonResult {
 const emptyOffer = (): Offer => ({ company: '', stipend: '', location: '', techStack: '', growth: 5 });
 
 export default function OffersPage() {
+  const { user } = useAuth();
   const [offers, setOffers] = useState<Offer[]>([emptyOffer(), emptyOffer()]);
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid, 'offerComparisons', 'latest'));
+        if (snap.exists()) {
+          const d = snap.data();
+          setResult(d.result);
+          setSavedAt(d.comparedAt);
+          if (d.offers) setOffers(d.offers);
+        }
+      } catch (e) { console.error('Failed to load:', e); }
+    })();
+  }, [user]);
 
   const updateOffer = (i: number, field: keyof Offer, val: string | number) => {
     setOffers(prev => prev.map((o, idx) => idx === i ? { ...o, [field]: val } : o));
@@ -46,31 +66,23 @@ export default function OffersPage() {
         body: JSON.stringify({
           prompt: `You are an expert career advisor helping a student compare internship offers. Analyze these offers and give a clear recommendation.\n\nOffers:\n${JSON.stringify(valid, null, 2)}\n\nConsider: stipend, location, tech stack relevance, growth potential, and overall career impact. Rank the offers and give pros/cons for each.`,
           schema: {
-            type: 'OBJECT',
-            properties: {
-              recommendation: { type: 'STRING', description: 'Which offer to take and why, in 1-2 sentences' },
-              reasoning: { type: 'STRING', description: 'Detailed 2-3 sentence reasoning' },
-              offerRankings: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    company: { type: 'STRING' },
-                    rank: { type: 'INTEGER' },
-                    pros: { type: 'ARRAY', items: { type: 'STRING' } },
-                    cons: { type: 'ARRAY', items: { type: 'STRING' } },
-                  },
-                  required: ['company', 'rank', 'pros', 'cons'],
-                },
-              },
-            },
-            required: ['recommendation', 'reasoning', 'offerRankings'],
+            recommendation: 'string (which offer to take and why, 1-2 sentences)',
+            reasoning: 'string (detailed 2-3 sentence reasoning)',
+            offerRankings: [{ company: 'string', rank: 'number', pros: ['string'], cons: ['string'] }],
           },
         }),
       });
       if (!res.ok) throw new Error('API Error');
       const { text } = await res.json();
-      setResult(JSON.parse(text || '{}'));
+      const data = JSON.parse(text || '{}');
+      setResult(data);
+      const now = new Date().toISOString();
+      setSavedAt(now);
+      if (user) {
+        await setDoc(doc(db, 'users', user.uid, 'offerComparisons', 'latest'), {
+          result: data, offers: valid, comparedAt: now,
+        });
+      }
     } catch {
       setError('Failed to compare offers. Please try again.');
     } finally {
@@ -79,6 +91,8 @@ export default function OffersPage() {
   };
 
   const canCompare = offers.filter(o => o.company.trim()).length >= 2;
+  const rankColors = ['border-teal-400 bg-teal-50', 'border-slate-300 bg-white', 'border-amber-300 bg-amber-50'];
+  const rankBadges = ['🥇', '🥈', '🥉'];
 
   return (
     <AppLayout>
@@ -98,6 +112,13 @@ export default function OffersPage() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex justify-between">
             <span>{error}</span><button onClick={() => setError(null)}>✕</button>
+          </div>
+        )}
+
+        {savedAt && !loading && result && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-slate-400">
+            <Clock className="w-3.5 h-3.5" />
+            Last compared: {new Date(savedAt).toLocaleString()}
           </div>
         )}
 
@@ -128,9 +149,7 @@ export default function OffersPage() {
               <Plus className="w-4 h-4" /> Add Third Offer
             </button>
           )}
-          <button
-            onClick={compare}
-            disabled={loading || !canCompare}
+          <button onClick={compare} disabled={loading || !canCompare}
             className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
           >
             {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Comparing...</> : <><Scale className="w-4 h-4" /> Compare Offers</>}
@@ -140,25 +159,50 @@ export default function OffersPage() {
         <AnimatePresence>
           {result && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+              {/* AI Verdict */}
               <div className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white p-6 rounded-2xl">
-                <div className="flex items-center gap-2 mb-3"><Trophy className="w-5 h-5" /><p className="font-bold text-lg">AI Verdict</p></div>
+                <div className="flex items-center gap-3 mb-3">
+                  <Award className="w-6 h-6" />
+                  <p className="font-bold text-lg">AI Verdict</p>
+                </div>
                 <p className="font-semibold text-xl mb-2">{result.recommendation}</p>
-                <p className="text-teal-100 text-sm">{result.reasoning}</p>
+                <p className="text-teal-100 text-sm leading-relaxed">{result.reasoning}</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Ranked Offers */}
+              <div className="space-y-4">
                 {result.offerRankings?.sort((a, b) => a.rank - b.rank).map((o, i) => (
-                  <div key={i} className={`bg-white border rounded-2xl p-5 shadow-sm ${i === 0 ? 'border-teal-300' : 'border-slate-200'}`}>
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-600'}`}>#{o.rank}</span>
-                      <h3 className="font-bold text-slate-900">{o.company}</h3>
-                      {i === 0 && <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-semibold ml-auto">Recommended</span>}
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ delay: i * 0.1 }}
+                    className={`border-2 rounded-2xl p-5 shadow-sm ${rankColors[i] || 'border-slate-200 bg-white'}`}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl">{rankBadges[i] || `#${o.rank}`}</span>
+                      <h3 className="font-bold text-slate-900 text-lg">{o.company}</h3>
+                      {i === 0 && <span className="text-xs bg-teal-500 text-white px-3 py-1 rounded-full font-bold ml-auto">✨ RECOMMENDED</span>}
                     </div>
-                    <div className="space-y-2">
-                      {o.pros?.map((p, j) => <p key={j} className="text-xs text-emerald-700 flex items-start gap-1.5"><span>✅</span>{p}</p>)}
-                      {o.cons?.map((c, j) => <p key={j} className="text-xs text-red-600 flex items-start gap-1.5"><span>⚠️</span>{c}</p>)}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1"><ThumbsUp className="w-3 h-3" /> Pros</p>
+                        {o.pros?.map((p, j) => (
+                          <div key={j} className="flex items-start gap-2 text-sm text-emerald-700">
+                            <span className="text-emerald-500 shrink-0">✅</span>{p}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Cons</p>
+                        {o.cons?.map((c, j) => (
+                          <div key={j} className="flex items-start gap-2 text-sm text-red-600">
+                            <span className="shrink-0">⚠️</span>{c}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
