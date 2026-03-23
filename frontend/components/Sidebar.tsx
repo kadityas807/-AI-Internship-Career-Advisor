@@ -66,7 +66,7 @@ export function Sidebar() {
         <nav className="space-y-0.5 mb-4">
           {coreLinks.map((link) => {
             const Icon = link.icon;
-            const isActive = pathname === link.href;
+            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.name}
@@ -91,7 +91,7 @@ export function Sidebar() {
         <nav className="space-y-0.5">
           {toolLinks.map((link) => {
             const Icon = link.icon;
-            const isActive = pathname === link.href;
+            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.name}
