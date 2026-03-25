@@ -289,7 +289,7 @@ export default function LandingPage() {
             {/* connector line */}
             <div className="hidden md:block absolute top-10 left-1/3 right-1/3 h-0.5 bg-gradient-to-r from-indigo-200 via-violet-200 to-indigo-200" />
             {[
-              { step: '01', title: 'Import Your Profile', desc: 'Connect GitHub, upload a PDF resume, or type manually. Your history becomes your AI\'s memory.', color: 'from-indigo-500 to-violet-500' },
+              { step: '01', title: 'Import Your Profile', desc: 'Connect GitHub, upload a PDF resume, or type manually. Your history becomes your AI&apos;s memory.', color: 'from-indigo-500 to-violet-500' },
               { step: '02', title: 'Get AI Analysis', desc: 'Your mentor reads your full profile, runs skills gap analysis, and creates a personalised roadmap.', color: 'from-violet-500 to-pink-500' },
               { step: '03', title: 'Apply & Level Up', desc: 'Discover real jobs, generate cover letters, practise mock interviews, and track every application.', color: 'from-pink-500 to-rose-500' },
             ].map((item, i) => (
@@ -332,7 +332,7 @@ export default function LandingPage() {
                 onClick={signIn}
                 className="px-10 py-4 bg-white text-slate-900 rounded-full font-bold text-base hover:bg-indigo-50 transition-all shadow-xl"
               >
-                Get Started — It's Free
+                Get Started — It&apos;s Free
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}

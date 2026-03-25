@@ -289,7 +289,7 @@ export default function FingerprintPage() {
                       </div>
                       
                       <h2 className="text-2xl md:text-3xl font-display font-medium leading-relaxed text-slate-100 italic drop-shadow-sm">
-                        "{fingerprint.uniqueValueProposition}"
+                        &quot;{fingerprint.uniqueValueProposition}&quot;
                       </h2>
                     </div>
 
