@@ -26,6 +26,7 @@ interface FollowUp {
 
 export default function NetworkingPage() {
   const { user } = useAuth();
+  const [now, setNow] = useState(0);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -37,6 +38,7 @@ export default function NetworkingPage() {
     if (!user) return;
     getDocs(collection(db, 'users', user.uid, 'contacts')).then(snap => {
       setContacts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Contact)));
+      setNow(Date.now());
       setLoading(false);
     });
   }, [user]);
@@ -85,7 +87,7 @@ export default function NetworkingPage() {
     'No Response': 'bg-red-100 text-red-600 border-red-200',
   };
 
-  const daysSince = (date: string) => Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+  const daysSince = (date: string, now: number) => Math.floor((now - new Date(date).getTime()) / 86400000);
 
   return (
     <AppLayout>
@@ -137,38 +139,38 @@ export default function NetworkingPage() {
         ) : (
           <div className="space-y-4">
             {contacts.map(contact => {
-              const fu = followUps.find(f => f.contactId === contact.id);
-              const days = daysSince(contact.dateContacted);
-              const needsFollowUp = contact.status === 'No Response' && days >= 7;
-              return (
-                <motion.div key={contact.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`bg-white border rounded-2xl p-5 shadow-sm ${needsFollowUp ? 'border-amber-200' : 'border-slate-200'}`}>
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <h3 className="font-bold text-slate-900">{contact.name}</h3>
-                      <p className="text-sm text-slate-500">{contact.company} · {days}d ago</p>
-                      {contact.notes && <p className="text-xs text-slate-400 mt-1">{contact.notes}</p>}
+                const fu = followUps.find(f => f.contactId === contact.id);
+                const days = daysSince(contact.dateContacted, now);
+                const needsFollowUp = contact.status === 'No Response' && days >= 7;
+                return (
+                  <motion.div key={contact.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`bg-white border rounded-2xl p-5 shadow-sm ${needsFollowUp ? 'border-amber-200' : 'border-slate-200'}`}>
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <h3 className="font-bold text-slate-900">{contact.name}</h3>
+                        <p className="text-sm text-slate-500">{contact.company} · {days}d ago</p>
+                        {contact.notes && <p className="text-xs text-slate-400 mt-1">{contact.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select value={contact.status} onChange={e => updateStatus(contact.id!, e.target.value as Status)} className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColors[contact.status]} outline-none cursor-pointer`}>
+                          <option>Pending</option><option>Replied</option><option>No Response</option>
+                        </select>
+                        {needsFollowUp && (
+                          <button onClick={() => generateFollowUp(contact)} disabled={generatingFollowUp === contact.id} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-amber-100 text-amber-700 border border-amber-200 rounded-full hover:bg-amber-200 transition-colors font-semibold">
+                            {generatingFollowUp === contact.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
+                            Follow Up
+                          </button>
+                        )}
+                        <button onClick={() => deleteContact(contact.id!)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <select value={contact.status} onChange={e => updateStatus(contact.id!, e.target.value as Status)} className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColors[contact.status]} outline-none cursor-pointer`}>
-                        <option>Pending</option><option>Replied</option><option>No Response</option>
-                      </select>
-                      {needsFollowUp && (
-                        <button onClick={() => generateFollowUp(contact)} disabled={generatingFollowUp === contact.id} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-amber-100 text-amber-700 border border-amber-200 rounded-full hover:bg-amber-200 transition-colors font-semibold">
-                          {generatingFollowUp === contact.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
-                          Follow Up
-                        </button>
-                      )}
-                      <button onClick={() => deleteContact(contact.id!)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                  {fu && (
-                    <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800">
-                      <p className="text-xs font-semibold text-amber-600 mb-1">💬 Suggested Follow-Up:</p>
-                      {fu.message}
-                    </div>
-                  )}
-                </motion.div>
-              );
+                    {fu && (
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800">
+                        <p className="text-xs font-semibold text-amber-600 mb-1">💬 Suggested Follow-Up:</p>
+                        {fu.message}
+                      </div>
+                    )}
+                  </motion.div>
+                );
             })}
           </div>
         )}
