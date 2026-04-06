@@ -3,8 +3,37 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
-import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, Fingerprint, Map, Menu, X, Search, Mic, Sparkles, FileSearch, Linkedin, MailX, Mail, Scale, Users, Trophy, ListTodo, DollarSign, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Briefcase, FileText, MessageSquare, LogOut, Fingerprint, Map, Menu, X, Search, Mic, Sparkles, FileSearch, Linkedin, MailX, Mail, Scale, Users, Trophy, ListTodo, DollarSign, CalendarDays, LucideIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+
+interface NavLink {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+function SidebarLink({ link, pathname, onClick }: { link: NavLink; pathname: string; onClick?: () => void }) {
+  const Icon = link.icon;
+  const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+  return (
+    <Link
+      href={link.href}
+      onClick={onClick}
+      aria-current={isActive ? 'page' : undefined}
+      className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+        isActive
+          ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20'
+          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+        {link.name}
+      </div>
+      {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white/60" />}
+    </Link>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -24,7 +53,7 @@ export function Sidebar() {
     sessionStorage.setItem('sidebar-scroll', e.currentTarget.scrollTop.toString());
   };
 
-  const coreLinks = [
+  const coreLinks: NavLink[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Skills', href: '/skills', icon: BookOpen },
     { name: 'Projects', href: '/projects', icon: Briefcase },
@@ -36,7 +65,7 @@ export function Sidebar() {
     { name: 'Time-to-Ready', href: '/roadmap', icon: Map },
   ];
 
-  const toolLinks = [
+  const toolLinks: NavLink[] = [
     { name: 'Resume Analyzer', href: '/resume', icon: FileSearch },
     { name: 'LinkedIn Optimizer', href: '/linkedin', icon: Linkedin },
     { name: 'Rejection Analyzer', href: '/rejection', icon: MailX },
@@ -48,6 +77,8 @@ export function Sidebar() {
     { name: 'Salary Insights', href: '/salary', icon: DollarSign },
     { name: 'Study Plan', href: '/study-plan', icon: CalendarDays },
   ];
+
+  const closeMobile = () => { if (mobileOpen) setMobileOpen(false); };
 
   const sidebarContent = (
     <>
@@ -72,55 +103,15 @@ export function Sidebar() {
       <div ref={scrollRef} onScroll={handleScroll} className="px-4 pb-2 flex-1 overflow-y-auto">
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">Menu</div>
         <nav className="space-y-0.5 mb-4">
-          {coreLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => { if (mobileOpen) setMobileOpen(false); }}
-                aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
-                  isActive 
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20' 
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                  {link.name}
-                </div>
-                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white/60" />}
-              </Link>
-            );
-          })}
+          {coreLinks.map((link) => (
+            <SidebarLink key={link.name} link={link} pathname={pathname} onClick={closeMobile} />
+          ))}
         </nav>
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">AI Tools</div>
         <nav className="space-y-0.5">
-          {toolLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => { if (mobileOpen) setMobileOpen(false); }}
-                aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
-                  isActive 
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20' 
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                  {link.name}
-                </div>
-                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white/60" />}
-              </Link>
-            );
-          })}
+          {toolLinks.map((link) => (
+            <SidebarLink key={link.name} link={link} pathname={pathname} onClick={closeMobile} />
+          ))}
         </nav>
       </div>
 
