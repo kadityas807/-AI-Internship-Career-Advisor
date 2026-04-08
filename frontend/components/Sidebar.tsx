@@ -24,10 +24,6 @@ export function Sidebar() {
     sessionStorage.setItem('sidebar-scroll', e.currentTarget.scrollTop.toString());
   };
 
-  // Close on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   const coreLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -84,6 +80,7 @@ export function Sidebar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => { if (mobileOpen) setMobileOpen(false); }}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                   isActive 
@@ -109,6 +106,7 @@ export function Sidebar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => { if (mobileOpen) setMobileOpen(false); }}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                   isActive 

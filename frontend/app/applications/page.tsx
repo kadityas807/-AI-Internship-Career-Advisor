@@ -717,7 +717,7 @@ Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. E
                    <p className="text-xl font-bold mb-6 text-yellow-900">You received an offer from {emailScanResult.companyName}!</p>
                    
                    <div className="bg-white/40 backdrop-blur-sm p-4 rounded-xl border border-white/40 inline-block text-left relative overflow-hidden shadow-sm">
-                     <p className="text-amber-950 font-medium z-10 relative">"{emailScanResult.summary}"</p>
+                     <p className="text-amber-950 font-medium z-10 relative">&quot;{emailScanResult.summary}&quot;</p>
                    </div>
                    
                    <p className="text-sm text-yellow-800 font-semibold mt-6 max-w-sm mx-auto opacity-80 uppercase tracking-widest">Database Automatically Updated</p>
@@ -735,7 +735,7 @@ Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. E
                    <p className="text-slate-800 mb-1 pl-2"><strong>Company:</strong> {emailScanResult.companyName}</p>
                    <p className="text-slate-800 mb-1 pl-2"><strong>New Status:</strong> <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-700 uppercase">{emailScanResult.newStatus}</span></p>
                  </div>
-                 <p className="text-base text-emerald-700 mt-6 max-w-sm mx-auto">"{emailScanResult.summary}"</p>
+                 <p className="text-base text-emerald-700 mt-6 max-w-sm mx-auto">&quot;{emailScanResult.summary}&quot;</p>
                  <button onClick={() => setIsEmailModalOpen(false)} className="mt-8 px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md transition-transform hover:scale-105">Continue</button>
                </div>
             )}
