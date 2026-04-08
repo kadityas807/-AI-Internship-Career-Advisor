@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { db } from '../firebase';
@@ -21,38 +21,38 @@ export default function GlobalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const widgetInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Manage chatbot lifecycle events
+  // Accessibility: Focus management and Escape key listener
   useEffect(() => {
     if (!isOpen) return;
-    const focusTimer = setTimeout(() => widgetInputRef.current?.focus(), 400);
-    const escListener = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
-    window.addEventListener('keydown', escListener);
+    const focusTimeout = setTimeout(() => inputRef.current?.focus(), 400);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
-      clearTimeout(focusTimer);
-      window.removeEventListener('keydown', escListener);
+      clearTimeout(focusTimeout);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
 
-  // Sync minimal profile signals for context
+  // Build minimal context without updating state continuously
   useEffect(() => {
     if (!user || !isOpen) return;
     
-    const syncProfileSignals = async () => {
+    const fetchProfileData = async () => {
       try {
-        const uDoc = doc(db, 'users', user.uid);
-        const [sk, pj, ap, pf] = await Promise.all([
-          getDocs(collection(uDoc, 'skills')),
-          getDocs(collection(uDoc, 'projects')),
-          getDocs(collection(uDoc, 'applications')),
-          getDoc(doc(uDoc, 'fingerprint', 'platform_profiles'))
-        ]);
+        const skillsSnap = await getDocs(collection(db, 'users', user.uid, 'skills'));
+        const projectsSnap = await getDocs(collection(db, 'users', user.uid, 'projects'));
+        const appsSnap = await getDocs(collection(db, 'users', user.uid, 'applications'));
+        const roadmapSnap = await getDoc(doc(db, 'users', user.uid, 'roadmap', 'current'));
+        const platformsSnap = await getDoc(doc(db, 'users', user.uid, 'fingerprint', 'platform_profiles'));
         
-        const skills = sk.docs.map(d => d.data());
-        const projects = pj.docs.map(d => d.data());
-        const apps = ap.docs.map(d => d.data());
-        const platforms = pf.exists() ? pf.data() : {};
+        const skills = skillsSnap.docs.map(d => d.data());
+        const projects = projectsSnap.docs.map(d => d.data());
+        const apps = appsSnap.docs.map(d => d.data());
+        const platforms = platformsSnap.exists() ? platformsSnap.data() : {};
         
         let githubReposText = 'No GitHub profile linked.';
         if (platforms.github) {
@@ -81,11 +81,11 @@ GitHub Repos:
 ${githubReposText}
 `;
         setProfileContext(context);
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
       }
     };
-    syncProfileSignals();
+    fetchProfileData();
   }, [user, isOpen]);
 
   // Listen to messages
@@ -119,9 +119,6 @@ ${githubReposText}
     });
     return () => unsubscribe();
   }, [user, isOpen]);
-
-  // Skip widget on mentor page after hooks
-  if (pathname === '/mentor') return null;
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +158,9 @@ ${githubReposText}
   };
 
   const activeMessages = messages.filter(m => (m.sessionId || 'legacy') === (activeSessionId || 'legacy'));
+
+  // If we are already on the mentor page, don't show the floating widget
+  if (pathname === '/mentor') return null;
 
   return (
     <>
@@ -245,7 +245,7 @@ ${githubReposText}
               <form onSubmit={sendMessage} className="flex items-center gap-2">
                 <label htmlFor="chatbot-input" className="sr-only">Chat input</label>
                 <input
-                  ref={widgetInputRef}
+                  ref={inputRef}
                   id="chatbot-input"
                   type="text"
                   value={input}
