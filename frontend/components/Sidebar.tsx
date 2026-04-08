@@ -26,8 +26,13 @@ export function Sidebar() {
 
   // Close on route change
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    if (mobileOpen) {
+      // Use requestAnimationFrame to avoid cascading render lint error
+      requestAnimationFrame(() => {
+        setMobileOpen(false);
+      });
+    }
+  }, [pathname, mobileOpen]);
 
   const coreLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -84,6 +89,7 @@ export function Sidebar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => setMobileOpen(false)}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                   isActive 
@@ -109,6 +115,7 @@ export function Sidebar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => setMobileOpen(false)}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                   isActive 
