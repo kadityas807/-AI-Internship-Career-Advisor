@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { db } from '../firebase';
@@ -23,42 +23,37 @@ export default function GlobalChatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Handle auto-focus when opened
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 400); // wait for entry animation
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-
-  // Handle Escape key to close
+  // Widget interactivity: Auto-focus and keyboard listener
   useEffect(() => {
     if (!isOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
+    const focusTimer = setTimeout(() => inputRef.current?.focus(), 400);
+    const closeOnEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsOpen(false);
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    window.addEventListener('keydown', closeOnEsc);
+    return () => {
+      clearTimeout(focusTimer);
+      window.removeEventListener('keydown', closeOnEsc);
+    };
   }, [isOpen]);
 
   // Build minimal context without updating state continuously
   useEffect(() => {
     if (!user || !isOpen) return;
     
-    const fetchProfileData = async () => {
+    const fetchContextData = async () => {
       try {
-        const skillsSnap = await getDocs(collection(db, 'users', user.uid, 'skills'));
-        const projectsSnap = await getDocs(collection(db, 'users', user.uid, 'projects'));
-        const appsSnap = await getDocs(collection(db, 'users', user.uid, 'applications'));
-        const roadmapSnap = await getDoc(doc(db, 'users', user.uid, 'roadmap', 'current'));
-        const platformsSnap = await getDoc(doc(db, 'users', user.uid, 'fingerprint', 'platform_profiles'));
+        const [s, p, a, f] = await Promise.all([
+          getDocs(collection(db, 'users', user.uid, 'skills')),
+          getDocs(collection(db, 'users', user.uid, 'projects')),
+          getDocs(collection(db, 'users', user.uid, 'applications')),
+          getDoc(doc(db, 'users', user.uid, 'fingerprint', 'platform_profiles'))
+        ]);
         
-        const skills = skillsSnap.docs.map(d => d.data());
-        const projects = projectsSnap.docs.map(d => d.data());
-        const apps = appsSnap.docs.map(d => d.data());
-        const platforms = platformsSnap.exists() ? platformsSnap.data() : {};
+        const skills = s.docs.map(d => d.data());
+        const projects = p.docs.map(d => d.data());
+        const apps = a.docs.map(d => d.data());
+        const platforms = f.exists() ? f.data() : {};
         
         let githubReposText = 'No GitHub profile linked.';
         if (platforms.github) {
@@ -87,11 +82,11 @@ GitHub Repos:
 ${githubReposText}
 `;
         setProfileContext(context);
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
       }
     };
-    fetchProfileData();
+    fetchContextData();
   }, [user, isOpen]);
 
   // Listen to messages
