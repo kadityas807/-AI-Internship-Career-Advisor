@@ -21,39 +21,38 @@ export default function GlobalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const widgetInputRef = useRef<HTMLInputElement>(null);
 
-  // Widget interactivity: Auto-focus and keyboard listener
+  // Manage chatbot lifecycle events
   useEffect(() => {
     if (!isOpen) return;
-    const focusTimer = setTimeout(() => inputRef.current?.focus(), 400);
-    const closeOnEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEsc);
+    const focusTimer = setTimeout(() => widgetInputRef.current?.focus(), 400);
+    const escListener = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
+    window.addEventListener('keydown', escListener);
     return () => {
       clearTimeout(focusTimer);
-      window.removeEventListener('keydown', closeOnEsc);
+      window.removeEventListener('keydown', escListener);
     };
   }, [isOpen]);
 
-  // Build minimal context without updating state continuously
+  // Sync minimal profile signals for context
   useEffect(() => {
     if (!user || !isOpen) return;
     
-    const fetchContextData = async () => {
+    const syncProfileSignals = async () => {
       try {
-        const [s, p, a, f] = await Promise.all([
-          getDocs(collection(db, 'users', user.uid, 'skills')),
-          getDocs(collection(db, 'users', user.uid, 'projects')),
-          getDocs(collection(db, 'users', user.uid, 'applications')),
-          getDoc(doc(db, 'users', user.uid, 'fingerprint', 'platform_profiles'))
+        const uDoc = doc(db, 'users', user.uid);
+        const [sk, pj, ap, pf] = await Promise.all([
+          getDocs(collection(uDoc, 'skills')),
+          getDocs(collection(uDoc, 'projects')),
+          getDocs(collection(uDoc, 'applications')),
+          getDoc(doc(uDoc, 'fingerprint', 'platform_profiles'))
         ]);
         
-        const skills = s.docs.map(d => d.data());
-        const projects = p.docs.map(d => d.data());
-        const apps = a.docs.map(d => d.data());
-        const platforms = f.exists() ? f.data() : {};
+        const skills = sk.docs.map(d => d.data());
+        const projects = pj.docs.map(d => d.data());
+        const apps = ap.docs.map(d => d.data());
+        const platforms = pf.exists() ? pf.data() : {};
         
         let githubReposText = 'No GitHub profile linked.';
         if (platforms.github) {
@@ -86,7 +85,7 @@ ${githubReposText}
         console.error(err);
       }
     };
-    fetchContextData();
+    syncProfileSignals();
   }, [user, isOpen]);
 
   // Listen to messages
@@ -121,8 +120,7 @@ ${githubReposText}
     return () => unsubscribe();
   }, [user, isOpen]);
 
-  // If we are already on the mentor page, don't show the floating widget
-  // (Moved after all hooks to comply with Rules of Hooks)
+  // Skip widget on mentor page after hooks
   if (pathname === '/mentor') return null;
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -247,7 +245,7 @@ ${githubReposText}
               <form onSubmit={sendMessage} className="flex items-center gap-2">
                 <label htmlFor="chatbot-input" className="sr-only">Chat input</label>
                 <input
-                  ref={inputRef}
+                  ref={widgetInputRef}
                   id="chatbot-input"
                   type="text"
                   value={input}
