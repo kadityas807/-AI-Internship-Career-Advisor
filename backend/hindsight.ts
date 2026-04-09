@@ -1,8 +1,7 @@
 import { LLM, type BaseLLMParams } from '@langchain/core/language_models/llms';
 
-const HINDSIGHT_BASE = 'https://api.hindsight.vectorize.io';
-
-const getApiKey = () => process.env.HINDSIGHT_API_KEY || '';
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3';
 
 const ADVISOR_PREFIX = `You are an AI Career Mentor and resume expert. You CAN generate complete resumes, optimize them for ATS, critique CVs, and give career advice. 
 
@@ -42,51 +41,53 @@ Produce direct, specific, actionable output.
 
 Student request: `;
 
+async function fetchOllama(prompt: string): Promise<string> {
+  const controller = new AbortController();
+  // Ollama might require more time to load the model into memory
+  const timeoutId = setTimeout(() => controller.abort(), 90000); 
+
+  try {
+    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        prompt: prompt,
+        stream: false, // Wait for full response so we can drop it right in
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Ollama API error ${res.status}: ${text}`);
+    }
+
+    const data = await res.json();
+    return data?.response || '{}';
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') throw new Error('Ollama request timed out. Make sure the model is downloaded and running.');
+    throw err;
+  }
+}
+
 export class HindsightGeneric extends LLM {
   bankId: string;
 
   constructor(fields: { bankId: string } & BaseLLMParams) {
     super(fields);
-    this.bankId = fields.bankId;
+    this.bankId = fields.bankId; // Kept for compatibility
   }
 
-  _llmType() { return 'hindsight_generic'; }
+  _llmType() { return 'ollama_generic'; }
 
   async _call(prompt: string): Promise<string> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 40000);
-
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error('HINDSIGHT_API_KEY not found in environment');
-
-    try {
-      const res = await fetch(`${HINDSIGHT_BASE}/v1/default/banks/${this.bankId}/reflect`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: prompt,
-          context: '',
-          budget: 'high',
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Hindsight API error ${res.status}: ${text}`);
-      }
-
-      const data = await res.json();
-      return data?.text || '{}';
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      throw err;
-    }
+    return await fetchOllama(prompt);
   }
 }
 
@@ -97,48 +98,15 @@ export class HindsightReflect extends LLM {
 
   constructor(fields: { bankId: string; userId: string; context?: string } & BaseLLMParams) {
     super(fields);
-    this.bankId = fields.bankId;
+    this.bankId = fields.bankId; // Kept for compatibility
     this.userId = fields.userId;
     this.context = fields.context;
   }
 
-  _llmType() { return 'hindsight_reflect'; }
+  _llmType() { return 'ollama_reflect'; }
 
   async _call(prompt: string): Promise<string> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 40000);
-
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error('HINDSIGHT_API_KEY not found in environment');
-
-    try {
-      const res = await fetch(`${HINDSIGHT_BASE}/v1/default/banks/${this.bankId}/reflect`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: ADVISOR_PREFIX + prompt,
-          context: this.context || '',
-          budget: 'high',
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`Hindsight API error ${res.status}: ${errBody}`);
-      }
-
-      const data = await res.json();
-      return data?.text || 'I could not generate a response. Please try again.';
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') throw new Error('Request timed out after 20s');
-      throw err;
-    }
+    const fullPrompt = `${ADVISOR_PREFIX}\n\nCONTEXT:\n${this.context || ''}\n\nUSER PROMPT:\n${prompt}`;
+    return await fetchOllama(fullPrompt);
   }
 }

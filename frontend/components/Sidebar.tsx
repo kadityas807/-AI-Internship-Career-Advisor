@@ -34,7 +34,6 @@ export function Sidebar() {
     { name: 'Skills', href: '/skills', icon: BookOpen },
     { name: 'Projects', href: '/projects', icon: Briefcase },
     { name: 'Applications', href: '/applications', icon: FileText },
-    { name: 'Job Board', href: '/jobs', icon: Search },
     { name: 'AI Mentor', href: '/mentor', icon: MessageSquare },
     { name: 'Mock Interview', href: '/interview', icon: Mic },
     { name: 'Career Fingerprint', href: '/fingerprint', icon: Fingerprint },

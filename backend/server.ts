@@ -15,21 +15,9 @@ app.use(express.json());
 
 const BANK_ID = process.env.HINDSIGHT_BANK_ID || 'ai-mentor';
 
-// Non-blocking fire-and-forget retain
+// Memory retention disabled when using local Ollama without Vector Database
 function retainMemory(bankId: string, content: string, userId: string) {
-  const HINDSIGHT_API_KEY = process.env.HINDSIGHT_API_KEY!;
-  const HINDSIGHT_BASE = 'https://api.hindsight.vectorize.io';
-  fetch(`${HINDSIGHT_BASE}/v1/default/banks/${bankId}/memories`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${HINDSIGHT_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      items: [{ content, tags: [userId] }],
-      async: true,
-    }),
-  }).catch((err) => console.warn('Retain failed (non-blocking):', err));
+  console.log('Skipping Vectorize memory retention (using local Ollama)');
 }
 
 app.post('/api/mentor', async (req, res) => {
@@ -126,30 +114,7 @@ const hindsight = new HindsightClient({
 });
 
 app.post('/api/mentor/upload', upload.single('file'), async (req, res) => {
-  try {
-    const file = req.file;
-    const userId = req.body?.userId;
-
-    if (!file || !userId) {
-      return res.status(400).json({ error: 'File and userId are required.' });
-    }
-
-    const blob = new Blob([new Uint8Array(file.buffer)], { type: file.mimetype });
-    const fileObj = new File([blob], file.originalname, { type: file.mimetype });
-
-    const response = await (hindsight as any).retainFiles(
-      BANK_ID,
-      [fileObj],
-      {
-        filesMetadata: [{ tags: [userId.toString()], context: `Uploaded file for user ${userId}` }],
-      }
-    );
-
-    res.json({ success: true, response });
-  } catch (error: any) {
-    console.error('File upload error:', error);
-    res.status(500).json({ error: error?.message || 'Internal server error during upload' });
-  }
+  return res.status(400).json({ error: 'Resume memory upload is disabled while using local Ollama. Chat features remain active.' });
 });
 
 // ── Adzuna Job Search Proxy ──────────────────────────────────────────────────

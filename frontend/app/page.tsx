@@ -188,7 +188,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Track skills, import GitHub repos, discover real jobs, generate cover letters, practice mock interviews — 
+            Track skills, import GitHub repos, discover real jobs, generate cover letters, practice mock interviews —
             all guided by an AI that knows your full story.
           </motion.p>
 
@@ -221,7 +221,7 @@ export default function LandingPage() {
             className="mt-10 flex items-center justify-center gap-2 text-sm text-slate-500"
           >
             <div className="flex -space-x-2">
-              {['🧑‍💻','👩‍💻','🧑‍🎓','👨‍🎓','👩‍🎓'].map((e, i) => (
+              {['🧑‍💻', '👩‍💻', '🧑‍🎓', '👨‍🎓', '👩‍🎓'].map((e, i) => (
                 <div key={i} className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 border-2 border-white flex items-center justify-center text-xs">{e}</div>
               ))}
             </div>
