@@ -332,7 +332,7 @@ export default function LandingPage() {
                 onClick={signIn}
                 className="px-10 py-4 bg-white text-slate-900 rounded-full font-bold text-base hover:bg-indigo-50 transition-all shadow-xl"
               >
-                Get Started — It's Free
+                Get Started — It&apos;s Free
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}

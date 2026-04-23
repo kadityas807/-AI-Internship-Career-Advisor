@@ -26,8 +26,11 @@ export function Sidebar() {
 
   // Close on route change
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    const handleRouteChange = () => {
+      if (mobileOpen) setMobileOpen(false);
+    };
+    handleRouteChange();
+  }, [pathname, mobileOpen]);
 
   const coreLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
