@@ -20,6 +20,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "firebase": "^12.11.0",
+    "framer-motion": "^12.38.0",
     "langchain": "^1.2.35",
     "lucide-react": "^0.553.0",
     "motion": "^12.38.0",
