@@ -548,25 +548,37 @@ Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. E
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                       <button
                         onClick={() => { setJobDesc(''); setCoverLetter(''); setCoverLetterAppId(app.id); }}
                         title="Generate Cover Letter"
-                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                        aria-label="Generate Cover Letter"
+                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
                       >
                         <FileEdit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => analyzeRejection(app)}
                         title="Analyze Rejection"
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        aria-label="Analyze Rejection"
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
                       >
                         <BrainCircuit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => openEditModal(app)} title="Edit" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                      <button
+                        onClick={() => openEditModal(app)}
+                        title="Edit"
+                        aria-label="Edit"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                      >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(app.id)} title="Delete" className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                      <button
+                        onClick={() => handleDelete(app.id)}
+                        title="Delete"
+                        aria-label="Delete"
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
