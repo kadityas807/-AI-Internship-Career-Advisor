@@ -8,7 +8,7 @@ import { collection, query, onSnapshot, doc, setDoc, serverTimestamp, getDocs, g
 import { v4 as uuidv4 } from 'uuid';
 import { MessageSquare, X, Bot, User as UserIcon, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { processAgentActions } from '@/lib/agent-actions';
 
 export default function GlobalChatbot() {
@@ -22,8 +22,16 @@ export default function GlobalChatbot() {
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   // Build minimal context without updating state continuously
   useEffect(() => {
@@ -147,6 +155,9 @@ ${githubReposText}
 
   const activeMessages = messages.filter(m => (m.sessionId || 'legacy') === (activeSessionId || 'legacy'));
 
+  // If we are already on the mentor page, don't show the floating widget
+  if (pathname === '/mentor') return null;
+
   return (
     <>
       {/* Floating Action Button */}
@@ -157,7 +168,8 @@ ${githubReposText}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors"
+          aria-label="Open AI Mentor chat"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
         >
           <MessageSquare className="w-6 h-6" />
         </motion.button>
@@ -183,7 +195,11 @@ ${githubReposText}
                   <p className="text-[10px] text-indigo-200 font-medium">Global Assistant</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close chat"
+                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+              >
                 <X className="w-5 h-5 text-slate-400 hover:text-white" />
               </button>
             </div>
@@ -207,7 +223,7 @@ ${githubReposText}
                 </div>
               ))}
               {isLoading && (
-                <div className="flex gap-3">
+                <div className="flex gap-3" role="status" aria-live="polite">
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
                     <Bot className="w-4 h-4 text-indigo-600" />
                   </div>
@@ -233,8 +249,9 @@ ${githubReposText}
                 />
                 <button
                   type="submit"
+                  aria-label="Send message"
                   disabled={!input.trim() || isLoading || !profileContext}
-                  className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                  className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
                 >
                   <Send className="w-5 h-5" />
                 </button>
