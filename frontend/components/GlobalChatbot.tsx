@@ -8,7 +8,7 @@ import { collection, query, onSnapshot, doc, setDoc, serverTimestamp, getDocs, g
 import { v4 as uuidv4 } from 'uuid';
 import { MessageSquare, X, Bot, User as UserIcon, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { processAgentActions } from '@/lib/agent-actions';
 
 export default function GlobalChatbot() {
@@ -21,9 +21,6 @@ export default function GlobalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
 
   // Build minimal context without updating state continuously
   useEffect(() => {
@@ -76,6 +73,17 @@ ${githubReposText}
     fetchProfileData();
   }, [user, isOpen]);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   // Listen to messages
   useEffect(() => {
     if (!user || !isOpen) return;
@@ -107,6 +115,10 @@ ${githubReposText}
     });
     return () => unsubscribe();
   }, [user, isOpen]);
+
+  // If we are already on the mentor page, don't show the floating widget
+  // This must be after all Hook declarations to comply with React Hook rules
+  if (pathname === '/mentor') return null;
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +169,7 @@ ${githubReposText}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
+          aria-label="Open AI Mentor"
           className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors"
         >
           <MessageSquare className="w-6 h-6" />
@@ -183,7 +196,11 @@ ${githubReposText}
                   <p className="text-[10px] text-indigo-200 font-medium">Global Assistant</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close AI Mentor"
+                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+              >
                 <X className="w-5 h-5 text-slate-400 hover:text-white" />
               </button>
             </div>
@@ -211,7 +228,11 @@ ${githubReposText}
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
                     <Bot className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-2">
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="bg-white border border-slate-200 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-2"
+                  >
                     <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
                     <span className="text-xs text-slate-500 font-medium">Thinking...</span>
                   </div>
