@@ -21,13 +21,31 @@ export default function GlobalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
+  // Escape key to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Focus input on open
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 400);
+    }
+  }, [isOpen]);
 
   // Build minimal context without updating state continuously
   useEffect(() => {
-    if (!user || !isOpen) return;
+    if (!user || !isOpen || pathname === '/mentor') return;
     
     const fetchProfileData = async () => {
       try {
@@ -74,11 +92,11 @@ ${githubReposText}
       }
     };
     fetchProfileData();
-  }, [user, isOpen]);
+  }, [user, isOpen, pathname]);
 
   // Listen to messages
   useEffect(() => {
-    if (!user || !isOpen) return;
+    if (!user || !isOpen || pathname === '/mentor') return;
     const q = query(collection(db, 'users', user.uid, 'messages'), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
@@ -106,7 +124,11 @@ ${githubReposText}
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     });
     return () => unsubscribe();
-  }, [user, isOpen]);
+  }, [user, isOpen, pathname]);
+
+  // If we are already on the mentor page, don't show the floating widget
+  // (Note: Hooks must be called before this return)
+  if (pathname === '/mentor') return null;
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +179,8 @@ ${githubReposText}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors"
+          aria-label="Open AI Mentor chat"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <MessageSquare className="w-6 h-6" />
         </motion.button>
@@ -183,13 +206,21 @@ ${githubReposText}
                   <p className="text-[10px] text-indigo-200 font-medium">Global Assistant</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close chat"
+                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+              >
                 <X className="w-5 h-5 text-slate-400 hover:text-white" />
               </button>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+            <div
+              className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50"
+              role="log"
+              aria-live="polite"
+            >
               {activeMessages.length === 0 && (
                 <div className="text-center py-10 opacity-60">
                   <Bot className="w-8 h-8 mx-auto mb-2" />
@@ -223,18 +254,24 @@ ${githubReposText}
             {/* Input Form */}
             <div className="p-3 bg-white border-t border-slate-100">
               <form onSubmit={sendMessage} className="flex items-center gap-2">
+                <label htmlFor="chatbot-input" className="sr-only">
+                  Message AI Mentor
+                </label>
                 <input
+                  ref={inputRef}
+                  id="chatbot-input"
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask me to extract skills..."
                   disabled={isLoading || !profileContext}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none disabled:opacity-50"
                 />
                 <button
                   type="submit"
+                  aria-label="Send message"
                   disabled={!input.trim() || isLoading || !profileContext}
-                  className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                  className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
                 >
                   <Send className="w-5 h-5" />
                 </button>
