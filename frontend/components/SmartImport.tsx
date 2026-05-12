@@ -114,7 +114,7 @@ ${githubReposText}
       </button>
 
       {status === 'idle' && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-slate-800 text-white text-xs rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center font-medium">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-slate-800 text-white text-xs rounded-xl shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none z-10 text-center font-medium">
           1-Click automatic extraction from your connected platforms.
         </div>
       )}

@@ -5,7 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useEffect, useState, useRef } from 'react';
 import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { BookOpen, Briefcase, FileText, ArrowRight, Sparkles, Activity, Loader2, Target } from 'lucide-react';
+import { BookOpen, Briefcase, FileText, ArrowRight, Sparkles, Activity, Loader2, Target, X } from 'lucide-react';
 import Link from 'next/link';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-error';
 import { motion, useMotionValue, useSpring, animate } from 'motion/react';
@@ -221,7 +221,7 @@ export default function Dashboard() {
               className="text-red-400 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none rounded-md p-1"
               aria-label="Dismiss error"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
