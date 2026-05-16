@@ -4,6 +4,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import ToastProvider from '@/components/Toast';
 import GlobalBackground from '@/components/GlobalBackground';
+import GlobalChatbot from '@/components/GlobalChatbot';
 import { Inter, Outfit } from 'next/font/google';
 
 const inter = Inter({
@@ -32,6 +33,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
             <AuthProvider>
               <ToastProvider />
               {children}
+              <GlobalChatbot />
             </AuthProvider>
           </ErrorBoundary>
         </div>
