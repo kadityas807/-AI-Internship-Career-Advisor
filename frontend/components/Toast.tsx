@@ -65,7 +65,11 @@ export default function ToastProvider() {
           >
             <Icon className={`w-5 h-5 shrink-0 ${iconStyles[t.type]}`} />
             <p className="text-sm font-medium flex-1">{t.message}</p>
-            <button onClick={() => setToasts(prev => prev.filter(toast => toast.id !== t.id))} className="shrink-0 opacity-60 hover:opacity-100">
+            <button
+              onClick={() => setToasts(prev => prev.filter(toast => toast.id !== t.id))}
+              aria-label="Close notification"
+              className="shrink-0 opacity-60 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none rounded"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
