@@ -8,12 +8,11 @@ import { collection, query, onSnapshot, doc, setDoc, serverTimestamp, getDocs, g
 import { v4 as uuidv4 } from 'uuid';
 import { MessageSquare, X, Bot, User as UserIcon, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { processAgentActions } from '@/lib/agent-actions';
 
-export default function GlobalChatbot() {
+function GlobalChatbotContent() {
   const { user } = useAuth();
-  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -21,9 +20,7 @@ export default function GlobalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Build minimal context without updating state continuously
   useEffect(() => {
@@ -108,6 +105,27 @@ ${githubReposText}
     return () => unsubscribe();
   }, [user, isOpen]);
 
+  // Auto-focus input when chat opens
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Handle Escape key to close chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !user || !profileContext) return;
@@ -157,6 +175,7 @@ ${githubReposText}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
+          aria-label="Open AI Mentor"
           className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors"
         >
           <MessageSquare className="w-6 h-6" />
@@ -183,13 +202,21 @@ ${githubReposText}
                   <p className="text-[10px] text-indigo-200 font-medium">Global Assistant</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close AI Mentor"
+                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+              >
                 <X className="w-5 h-5 text-slate-400 hover:text-white" />
               </button>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+            <div
+              className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50"
+              role="log"
+              aria-live="polite"
+            >
               {activeMessages.length === 0 && (
                 <div className="text-center py-10 opacity-60">
                   <Bot className="w-8 h-8 mx-auto mb-2" />
@@ -224,6 +251,7 @@ ${githubReposText}
             <div className="p-3 bg-white border-t border-slate-100">
               <form onSubmit={sendMessage} className="flex items-center gap-2">
                 <input
+                  ref={inputRef}
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -234,6 +262,7 @@ ${githubReposText}
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading || !profileContext}
+                  aria-label="Send message"
                   className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
                 >
                   <Send className="w-5 h-5" />
@@ -245,4 +274,13 @@ ${githubReposText}
       </AnimatePresence>
     </>
   );
+}
+
+export default function GlobalChatbot() {
+  const pathname = usePathname();
+
+  // If we are already on the mentor page, don't show the floating widget
+  if (pathname === '/mentor') return null;
+
+  return <GlobalChatbotContent />;
 }
