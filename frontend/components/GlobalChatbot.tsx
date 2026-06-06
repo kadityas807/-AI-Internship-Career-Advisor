@@ -22,8 +22,7 @@ export default function GlobalChatbot() {
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
+  const isMentorPage = pathname === '/mentor';
 
   // Build minimal context without updating state continuously
   useEffect(() => {
@@ -147,6 +146,19 @@ ${githubReposText}
 
   const activeMessages = messages.filter(m => (m.sessionId || 'legacy') === (activeSessionId || 'legacy'));
 
+  // Handle escape key to close chat
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleEscape);
+    }
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  if (isMentorPage) return null;
+
   return (
     <>
       {/* Floating Action Button */}
@@ -157,7 +169,8 @@ ${githubReposText}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors"
+          aria-label="Open AI Mentor"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
         >
           <MessageSquare className="w-6 h-6" />
         </motion.button>
@@ -183,13 +196,21 @@ ${githubReposText}
                   <p className="text-[10px] text-indigo-200 font-medium">Global Assistant</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close AI Mentor"
+                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+              >
                 <X className="w-5 h-5 text-slate-400 hover:text-white" />
               </button>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+            <div
+              className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50"
+              role="log"
+              aria-live="polite"
+            >
               {activeMessages.length === 0 && (
                 <div className="text-center py-10 opacity-60">
                   <Bot className="w-8 h-8 mx-auto mb-2" />
@@ -228,12 +249,14 @@ ${githubReposText}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask me to extract skills..."
+                  aria-label="Message AI Mentor"
                   disabled={isLoading || !profileContext}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading || !profileContext}
+                  aria-label="Send message"
                   className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
                 >
                   <Send className="w-5 h-5" />
