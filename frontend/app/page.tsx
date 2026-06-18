@@ -3,6 +3,7 @@
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import GlobalChatbot from '@/components/GlobalChatbot';
 import { MessageSquare, ArrowRight, Brain, Target, Briefcase, Sparkles, Github, Mic, Search, TrendingUp, Star, Zap, Shield, ChevronRight } from 'lucide-react';
 import { motion, useInView, useMotionValue, useSpring, animate } from 'motion/react';
 
@@ -95,7 +96,7 @@ const features = [
   {
     icon: TrendingUp,
     title: "Skills Gap Analysis",
-    desc: "See exactly what's missing for your dream role. Visual chart, zero guessing.",
+    desc: "See exactly what&apos;s missing for your dream role. Visual chart, zero guessing.",
     color: "text-rose-600",
     bg: "from-rose-50 to-rose-100/50",
     border: "border-rose-200",
@@ -227,6 +228,7 @@ export default function LandingPage() {
             </div>
             <span><strong className="text-slate-900">500+</strong> students already levelling up</span>
           </motion.div>
+          <GlobalChatbot />
         </div>
       </section>
 
@@ -332,7 +334,7 @@ export default function LandingPage() {
                 onClick={signIn}
                 className="px-10 py-4 bg-white text-slate-900 rounded-full font-bold text-base hover:bg-indigo-50 transition-all shadow-xl"
               >
-                Get Started — It's Free
+                Get Started — It&apos;s Free
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}

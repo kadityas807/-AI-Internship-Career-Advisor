@@ -8,7 +8,7 @@ import { collection, query, onSnapshot, doc, setDoc, serverTimestamp, getDocs, g
 import { v4 as uuidv4 } from 'uuid';
 import { MessageSquare, X, Bot, User as UserIcon, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { processAgentActions } from '@/lib/agent-actions';
 
 export default function GlobalChatbot() {
@@ -21,15 +21,17 @@ export default function GlobalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Build minimal context without updating state continuously
   useEffect(() => {
-    if (!user || !isOpen) return;
+    if (!isOpen) return;
     
     const fetchProfileData = async () => {
+      if (!user) {
+        setProfileContext("You are the AI Career Mentor. The user is a guest.");
+        return;
+      }
       try {
         const skillsSnap = await getDocs(collection(db, 'users', user.uid, 'skills'));
         const projectsSnap = await getDocs(collection(db, 'users', user.uid, 'projects'));
@@ -78,7 +80,7 @@ ${githubReposText}
 
   // Listen to messages
   useEffect(() => {
-    if (!user || !isOpen) return;
+    if (!isOpen || !user) return;
     const q = query(collection(db, 'users', user.uid, 'messages'), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
@@ -110,42 +112,81 @@ ${githubReposText}
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !user || !profileContext) return;
+    if (!input.trim() || !profileContext) return;
 
     const userMessageText = input.trim();
+    const currentSessionId = activeSessionId || uuidv4();
+    if (!activeSessionId) setActiveSessionId(currentSessionId);
+
+    setMessages(prev => [...prev, { id: uuidv4(), role: 'user', content: userMessageText, sessionId: currentSessionId }]);
     setInput('');
     setIsLoading(true);
 
-    const userMsgId = uuidv4();
     try {
-      await setDoc(doc(db, 'users', user.uid, 'messages', userMsgId), {
-        uid: user.uid, role: 'user', content: userMessageText, createdAt: serverTimestamp(), sessionId: activeSessionId
-      });
+      if (user) {
+        await setDoc(doc(db, 'users', user.uid, 'messages', uuidv4()), {
+          uid: user.uid, role: 'user', content: userMessageText, createdAt: serverTimestamp(), sessionId: currentSessionId
+        });
+      }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/mentor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userMessage: userMessageText, history: messages, profileContext, userId: user.uid }),
+        body: JSON.stringify({ userMessage: userMessageText, history: messages, profileContext, userId: user?.uid || 'guest' }),
       });
 
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const { text: modelText } = await res.json();
       
-      const finalModelText = await processAgentActions(modelText || 'I am sorry, I could not generate a response.', user.uid, db);
+      const finalModelText = user
+        ? await processAgentActions(modelText || 'I am sorry, I could not generate a response.', user.uid, db)
+        : (modelText || 'I am sorry, I could not generate a response.');
 
-      await setDoc(doc(db, 'users', user.uid, 'messages', uuidv4()), {
-        uid: user.uid, role: 'model', content: finalModelText, createdAt: serverTimestamp(), sessionId: activeSessionId
-      });
+      setMessages(prev => [...prev, { id: uuidv4(), role: 'model', content: finalModelText, sessionId: currentSessionId }]);
+
+      if (user) {
+        await setDoc(doc(db, 'users', user.uid, 'messages', uuidv4()), {
+          uid: user.uid, role: 'model', content: finalModelText, createdAt: serverTimestamp(), sessionId: currentSessionId
+        });
+      }
     } catch (error) {
-      await setDoc(doc(db, 'users', user.uid, 'messages', uuidv4()), {
-        uid: user.uid, role: 'model', content: 'Sorry, I encountered an error. Please try again.', createdAt: serverTimestamp(), sessionId: activeSessionId
-      }).catch(() => {});
+      const errorMsg = 'Sorry, I encountered an error. Please try again.';
+      setMessages(prev => [...prev, { id: uuidv4(), role: 'model', content: errorMsg, sessionId: currentSessionId }]);
+      if (user) {
+        await setDoc(doc(db, 'users', user.uid, 'messages', uuidv4()), {
+          uid: user.uid, role: 'model', content: errorMsg, createdAt: serverTimestamp(), sessionId: currentSessionId
+        }).catch(() => {});
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Auto-focus input when opened
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Escape key to close
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleEscape);
+    }
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
   const activeMessages = messages.filter(m => (m.sessionId || 'legacy') === (activeSessionId || 'legacy'));
+
+  // If we are already on the mentor page, don't show the floating widget
+  if (pathname === '/mentor') return null;
 
   return (
     <>
@@ -157,6 +198,7 @@ ${githubReposText}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
+          aria-label="Open AI Mentor"
           className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white z-50 hover:bg-indigo-700 transition-colors"
         >
           <MessageSquare className="w-6 h-6" />
@@ -183,7 +225,11 @@ ${githubReposText}
                   <p className="text-[10px] text-indigo-200 font-medium">Global Assistant</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close AI Mentor"
+                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+              >
                 <X className="w-5 h-5 text-slate-400 hover:text-white" />
               </button>
             </div>
@@ -223,7 +269,10 @@ ${githubReposText}
             {/* Input Form */}
             <div className="p-3 bg-white border-t border-slate-100">
               <form onSubmit={sendMessage} className="flex items-center gap-2">
+                <label htmlFor="chatbot-input" className="sr-only">Chat input</label>
                 <input
+                  ref={inputRef}
+                  id="chatbot-input"
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -234,6 +283,7 @@ ${githubReposText}
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading || !profileContext}
+                  aria-label="Send message"
                   className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
                 >
                   <Send className="w-5 h-5" />

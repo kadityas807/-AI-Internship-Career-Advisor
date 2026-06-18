@@ -47,7 +47,7 @@ export default function SkillsVisualizer({ skills }: { skills: Skill[] }) {
         </div>
         <div>
           <h2 className="text-xl font-bold font-display text-slate-900">Your Skills Portfolio</h2>
-          <p className="text-sm text-slate-500">You've secured <span className="font-bold text-indigo-600">{totalSkills}</span> distinct skills!</p>
+          <p className="text-sm text-slate-500">You&apos;ve secured <span className="font-bold text-indigo-600">{totalSkills}</span> distinct skills!</p>
         </div>
       </div>
 
