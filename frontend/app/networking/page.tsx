@@ -85,7 +85,15 @@ export default function NetworkingPage() {
     'No Response': 'bg-red-100 text-red-600 border-red-200',
   };
 
-  const daysSince = (date: string) => Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
+
+  const daysSince = (date: string) => {
+    if (now === 0) return 0;
+    return Math.floor((now - new Date(date).getTime()) / 86400000);
+  };
 
   return (
     <AppLayout>
