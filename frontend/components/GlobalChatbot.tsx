@@ -22,9 +22,6 @@ export default function GlobalChatbot() {
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
-
   // Build minimal context without updating state continuously
   useEffect(() => {
     if (!user || !isOpen) return;
@@ -146,6 +143,9 @@ ${githubReposText}
   };
 
   const activeMessages = messages.filter(m => (m.sessionId || 'legacy') === (activeSessionId || 'legacy'));
+
+  // If we are already on the mentor page, don't show the floating widget
+  if (pathname === '/mentor') return null;
 
   return (
     <>
