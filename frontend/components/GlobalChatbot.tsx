@@ -8,7 +8,7 @@ import { collection, query, onSnapshot, doc, setDoc, serverTimestamp, getDocs, g
 import { v4 as uuidv4 } from 'uuid';
 import { MessageSquare, X, Bot, User as UserIcon, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { processAgentActions } from '@/lib/agent-actions';
 
 export default function GlobalChatbot() {
@@ -22,12 +22,9 @@ export default function GlobalChatbot() {
   const [profileContext, setProfileContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // If we are already on the mentor page, don't show the floating widget
-  if (pathname === '/mentor') return null;
-
   // Build minimal context without updating state continuously
   useEffect(() => {
-    if (!user || !isOpen) return;
+    if (!user || !isOpen || pathname === '/mentor') return;
     
     const fetchProfileData = async () => {
       try {
@@ -74,11 +71,11 @@ ${githubReposText}
       }
     };
     fetchProfileData();
-  }, [user, isOpen]);
+  }, [user, isOpen, pathname]);
 
   // Listen to messages
   useEffect(() => {
-    if (!user || !isOpen) return;
+    if (!user || !isOpen || pathname === '/mentor') return;
     const q = query(collection(db, 'users', user.uid, 'messages'), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
@@ -106,7 +103,7 @@ ${githubReposText}
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     });
     return () => unsubscribe();
-  }, [user, isOpen]);
+  }, [user, isOpen, pathname]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
