@@ -59,8 +59,9 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!user) return;
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'projects', id));
     } catch (error) {
@@ -121,11 +122,19 @@ export default function ProjectsPage() {
               transition={{ duration: 0.3, delay: index * 0.05 }}
               className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all relative group flex flex-col h-full"
             >
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => openEditModal(project)} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all">
+                <button
+                  onClick={() => openEditModal(project)}
+                  aria-label={`Edit ${project.name} project`}
+                  className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                >
                   <Edit2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => handleDelete(project.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <button
+                  onClick={() => handleDelete(project.id, project.name)}
+                  aria-label={`Delete ${project.name} project`}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -207,40 +216,44 @@ export default function ProjectsPage() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{formData.id ? 'Edit Project' : 'Add Project'}</h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  aria-label="Close modal"
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Project Name</label>
-                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none" placeholder="e.g. Expense Tracker" />
+                    <label htmlFor="projectName" className="block text-sm font-semibold text-slate-700 mb-1.5">Project Name</label>
+                    <input id="projectName" required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none" placeholder="e.g. Expense Tracker" />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Link (Optional)</label>
-                    <input type="url" value={formData.link} onChange={e => setFormData({...formData, link: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none" placeholder="https://github.com/..." />
+                    <label htmlFor="projectLink" className="block text-sm font-semibold text-slate-700 mb-1.5">Link (Optional)</label>
+                    <input id="projectLink" type="url" value={formData.link} onChange={e => setFormData({...formData, link: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none" placeholder="https://github.com/..." />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Tech Stack (comma separated)</label>
-                  <input type="text" value={formData.techStack} onChange={e => setFormData({...formData, techStack: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none" placeholder="React, Node.js, MongoDB" />
+                  <label htmlFor="techStack" className="block text-sm font-semibold text-slate-700 mb-1.5">Tech Stack (comma separated)</label>
+                  <input id="techStack" type="text" value={formData.techStack} onChange={e => setFormData({...formData, techStack: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none" placeholder="React, Node.js, MongoDB" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
-                  <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none h-28 resize-none" placeholder="What is this project? What problem does it solve?" />
+                  <label htmlFor="description" className="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
+                  <textarea id="description" required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none h-28 resize-none" placeholder="What is this project? What problem does it solve?" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Your Role (Optional)</label>
-                    <textarea value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none h-28 resize-none" placeholder="What specifically did you build or design?" />
+                    <label htmlFor="role" className="block text-sm font-semibold text-slate-700 mb-1.5">Your Role (Optional)</label>
+                    <textarea id="role" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none h-28 resize-none" placeholder="What specifically did you build or design?" />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Outcome / Impact (Optional)</label>
-                    <textarea value={formData.outcome} onChange={e => setFormData({...formData, outcome: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none h-28 resize-none" placeholder="e.g. Reduced load time by 40%, 100+ active users." />
+                    <label htmlFor="outcome" className="block text-sm font-semibold text-slate-700 mb-1.5">Outcome / Impact (Optional)</label>
+                    <textarea id="outcome" value={formData.outcome} onChange={e => setFormData({...formData, outcome: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all outline-none h-28 resize-none" placeholder="e.g. Reduced load time by 40%, 100+ active users." />
                   </div>
                 </div>
 
