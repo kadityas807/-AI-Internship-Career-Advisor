@@ -194,8 +194,8 @@ export default function ApplicationsPage() {
 
   const removeProfile = async (key: string) => {
     if (!user) return;
-    const updated = { ...profiles };
-    delete updated[key];
+    const platform = PLATFORMS.find(p => p.key === key);
+    if (!window.confirm(`Are you sure you want to remove your ${platform?.label || key} profile?`)) return;
     try {
       await setDoc(doc(db, 'users', user.uid, 'fingerprint', 'platform_profiles'), { [key]: '' }, { merge: true });
       setProfiles(prev => { const next = { ...prev }; delete next[key]; return next; });
@@ -232,6 +232,8 @@ export default function ApplicationsPage() {
 
   const handleDelete = async (id: string) => {
     if (!user) return;
+    const app = apps.find(a => a.id === id);
+    if (!window.confirm(`Delete application for ${app?.company || 'this company'}?`)) return;
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'applications', id));
     } catch (error) {
@@ -432,10 +434,10 @@ Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. E
                   </div>
                   {url && !isEditing && (
                     <div className="flex gap-1">
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-white transition-colors">
+                      <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`View ${p.label} profile`} className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-white transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none">
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-                      <button onClick={() => removeProfile(p.key)} className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-white transition-colors">
+                      <button onClick={() => removeProfile(p.key)} aria-label={`Remove ${p.label} profile`} className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-white transition-colors focus-visible:ring-2 focus-visible:ring-red-500 outline-none">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -548,25 +550,25 @@ Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. E
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                       <button
                         onClick={() => { setJobDesc(''); setCoverLetter(''); setCoverLetterAppId(app.id); }}
-                        title="Generate Cover Letter"
-                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                        title="Generate Cover Letter" aria-label={`Generate cover letter for ${app.company}`}
+                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-violet-500 outline-none"
                       >
                         <FileEdit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => analyzeRejection(app)}
-                        title="Analyze Rejection"
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Analyze Rejection" aria-label={`Analyze rejection for ${app.company}`}
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none"
                       >
                         <BrainCircuit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => openEditModal(app)} title="Edit" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                      <button onClick={() => openEditModal(app)} title="Edit" aria-label={`Edit ${app.company} application`} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-slate-500 outline-none">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(app.id)} title="Delete" className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                      <button onClick={() => handleDelete(app.id)} title="Delete" aria-label={`Delete ${app.company} application`} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-red-500 outline-none">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -717,7 +719,7 @@ Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. E
                    <p className="text-xl font-bold mb-6 text-yellow-900">You received an offer from {emailScanResult.companyName}!</p>
                    
                    <div className="bg-white/40 backdrop-blur-sm p-4 rounded-xl border border-white/40 inline-block text-left relative overflow-hidden shadow-sm">
-                     <p className="text-amber-950 font-medium z-10 relative">"{emailScanResult.summary}"</p>
+                     <p className="text-amber-950 font-medium z-10 relative">&quot;{emailScanResult.summary}&quot;</p>
                    </div>
                    
                    <p className="text-sm text-yellow-800 font-semibold mt-6 max-w-sm mx-auto opacity-80 uppercase tracking-widest">Database Automatically Updated</p>
@@ -735,7 +737,7 @@ Tone: confident, specific, and human. Address hiring manager as 'Hiring Team'. E
                    <p className="text-slate-800 mb-1 pl-2"><strong>Company:</strong> {emailScanResult.companyName}</p>
                    <p className="text-slate-800 mb-1 pl-2"><strong>New Status:</strong> <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-700 uppercase">{emailScanResult.newStatus}</span></p>
                  </div>
-                 <p className="text-base text-emerald-700 mt-6 max-w-sm mx-auto">"{emailScanResult.summary}"</p>
+                 <p className="text-base text-emerald-700 mt-6 max-w-sm mx-auto">&quot;{emailScanResult.summary}&quot;</p>
                  <button onClick={() => setIsEmailModalOpen(false)} className="mt-8 px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md transition-transform hover:scale-105">Continue</button>
                </div>
             )}
