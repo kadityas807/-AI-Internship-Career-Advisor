@@ -8,7 +8,7 @@ import { collection, query, onSnapshot, doc, setDoc, serverTimestamp, getDocs, g
 import { v4 as uuidv4 } from 'uuid';
 import { MessageSquare, X, Bot, User as UserIcon, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { processAgentActions } from '@/lib/agent-actions';
 
 export default function GlobalChatbot() {
