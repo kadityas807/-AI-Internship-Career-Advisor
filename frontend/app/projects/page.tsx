@@ -61,6 +61,8 @@ export default function ProjectsPage() {
 
   const handleDelete = async (id: string) => {
     if (!user) return;
+    const project = projects.find(p => p.id === id);
+    if (!window.confirm(`Are you sure you want to delete the project "${project?.name || 'this project'}"?`)) return;
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'projects', id));
     } catch (error) {
