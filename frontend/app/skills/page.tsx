@@ -56,8 +56,9 @@ export default function SkillsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!user) return;
+    if (!window.confirm(`Are you sure you want to delete the ${name} skill?`)) return;
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'skills', id));
     } catch (error) {
@@ -127,11 +128,19 @@ export default function SkillsPage() {
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-bl-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
-                <button onClick={() => openEditModal(skill)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0">
+                <button
+                  onClick={() => openEditModal(skill)}
+                  aria-label={`Edit ${skill.name} skill`}
+                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                >
                   <Edit2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => handleDelete(skill.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                <button
+                  onClick={() => handleDelete(skill.id, skill.name)}
+                  aria-label={`Delete ${skill.name} skill`}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -141,9 +150,17 @@ export default function SkillsPage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-3 font-display">{skill.name}</h3>
               
-              <div className="flex items-center gap-1 mb-5">
+              <div
+                className="flex items-center gap-1 mb-5"
+                role="img"
+                aria-label={`Proficiency: ${skill.proficiency} out of 5 stars`}
+              >
                 {[1, 2, 3, 4, 5].map(star => (
-                  <Star key={star} className={`w-4 h-4 ${star <= skill.proficiency ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
+                  <Star
+                    key={star}
+                    aria-hidden="true"
+                    className={`w-4 h-4 ${star <= skill.proficiency ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`}
+                  />
                 ))}
               </div>
 
@@ -193,25 +210,25 @@ export default function SkillsPage() {
               <h2 className="text-2xl font-bold text-slate-900 mb-6 font-display">{formData.id ? 'Edit Skill' : 'Add New Skill'}</h2>
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Skill Name</label>
-                  <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none" placeholder="e.g. React, Python, Public Speaking" />
+                  <label htmlFor="skill-name" className="block text-sm font-semibold text-slate-700 mb-2">Skill Name</label>
+                  <input id="skill-name" required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none" placeholder="e.g. React, Python, Public Speaking" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
-                  <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none appearance-none">
+                  <label htmlFor="skill-category" className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
+                  <select id="skill-category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none appearance-none">
                     <option value="Technical">Technical</option>
                     <option value="Soft">Soft</option>
                     <option value="Domain">Domain</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Proficiency (1-5)</label>
-                  <input type="range" min="1" max="5" value={formData.proficiency} onChange={e => setFormData({...formData, proficiency: Number(e.target.value)})} className="w-full accent-indigo-600" />
+                  <label htmlFor="skill-proficiency" className="block text-sm font-semibold text-slate-700 mb-2">Proficiency (1-5)</label>
+                  <input id="skill-proficiency" aria-label="Proficiency level" type="range" min="1" max="5" value={formData.proficiency} onChange={e => setFormData({...formData, proficiency: Number(e.target.value)})} className="w-full accent-indigo-600" />
                   <div className="text-center text-sm font-bold text-indigo-600 mt-2 bg-indigo-50 py-1 rounded-lg w-16 mx-auto">{formData.proficiency} / 5</div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Evidence (Optional)</label>
-                  <textarea value={formData.evidence} onChange={e => setFormData({...formData, evidence: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none h-28 resize-none" placeholder="How did you learn or demonstrate this? e.g. Built a full-stack app, took a Coursera course." />
+                  <label htmlFor="skill-evidence" className="block text-sm font-semibold text-slate-700 mb-2">Evidence (Optional)</label>
+                  <textarea id="skill-evidence" value={formData.evidence} onChange={e => setFormData({...formData, evidence: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none h-28 resize-none" placeholder="How did you learn or demonstrate this? e.g. Built a full-stack app, took a Coursera course." />
                 </div>
                 <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-100">
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors">Cancel</motion.button>
