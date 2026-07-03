@@ -56,8 +56,9 @@ export default function SkillsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!user) return;
+    if (!window.confirm(`Are you sure you want to delete the "${name}" skill?`)) return;
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'skills', id));
     } catch (error) {
@@ -131,7 +132,11 @@ export default function SkillsPage() {
                 <button onClick={() => openEditModal(skill)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
                   <Edit2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => handleDelete(skill.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                <button
+                  onClick={() => handleDelete(skill.id, skill.name)}
+                  aria-label={`Delete ${skill.name} skill`}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
