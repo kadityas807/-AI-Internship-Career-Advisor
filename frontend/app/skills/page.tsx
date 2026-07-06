@@ -13,9 +13,17 @@ import SmartImport from '@/components/SmartImport';
 import SkillsVisualizer from '@/components/SkillsVisualizer';
 import SkillsGap from '@/components/SkillsGap';
 
+interface Skill {
+  id: string;
+  name: string;
+  category: string;
+  proficiency: number;
+  evidence?: string;
+}
+
 export default function SkillsPage() {
   const { user } = useAuth();
-  const [skills, setSkills] = useState<any[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', category: 'Technical', proficiency: 3, evidence: '' });
 
@@ -56,16 +64,16 @@ export default function SkillsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!user) return;
+  const handleDelete = async (skill: Skill) => {
+    if (!user || !window.confirm(`Are you sure you want to delete the ${skill.name} skill?`)) return;
     try {
-      await deleteDoc(doc(db, 'users', user.uid, 'skills', id));
+      await deleteDoc(doc(db, 'users', user.uid, 'skills', skill.id));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `users/${user.uid}/skills/${id}`);
+      handleFirestoreError(error, OperationType.DELETE, `users/${user.uid}/skills/${skill.id}`);
     }
   };
 
-  const openEditModal = (skill: any) => {
+  const openEditModal = (skill: Skill) => {
     setFormData({
       id: skill.id,
       name: skill.name,
@@ -127,11 +135,19 @@ export default function SkillsPage() {
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-bl-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
-                <button onClick={() => openEditModal(skill)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 group-focus-within:translate-y-0">
+                <button
+                  onClick={() => openEditModal(skill)}
+                  aria-label={`Edit ${skill.name} skill`}
+                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none"
+                >
                   <Edit2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => handleDelete(skill.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                <button
+                  onClick={() => handleDelete(skill)}
+                  aria-label={`Delete ${skill.name} skill`}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
